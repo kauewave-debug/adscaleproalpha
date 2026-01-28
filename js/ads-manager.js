@@ -862,7 +862,7 @@
       var needActions = false;
       var needCosts = false;
       for(var ii=0; ii<cols.length; ii++){
-        if(cols[ii].key === 'ic' || cols[ii].key === 'results') needActions = true;
+        if(cols[ii].key === 'ic') needActions = true;
         if(cols[ii].key === 'cpr' || cols[ii].key === 'results') needCosts = true;
       }
       if(needActions) f.actions = true;
@@ -1220,7 +1220,7 @@
         // Alinhado ao Ads Manager: Resultados = Compras (purchase)
         // Observação: em alguns cenários a Meta pode retornar custo por compra em cost_per_action_type,
         // mas não retornar o count em actions. Por isso incluímos ambos para permitir fallback.
-        { key: 'results', label: 'Resultados', source: 'derived', derived: 'purchase_count', requiredFields: ['actions','cost_per_action_type'], format: 'number' },
+        { key: 'results', label: 'Resultados', source: 'derived', derived: 'purchase_count', requiredFields: ['cost_per_action_type'], format: 'number' },
         // Alinhado ao Ads Manager: Custo por Resultado = Custo por Compra (purchase)
         { key: 'cpr', label: 'Custo por Resultado', source: 'derived', derived: 'purchase_cost', requiredFields: ['cost_per_action_type'], format: 'currency' },
         { key: 'spend', label: 'Gasto', source: 'insight', field: 'spend', format: 'currency' },
@@ -1828,47 +1828,26 @@
         return sum;
       }
 
-      // Resultados = compras (purchase) como no Ads Manager.
-      // IMPORTANTE: a Meta frequentemente retorna *múltiplos action_types* para a mesma compra
-      // (ex.: purchase / omni_purchase / offsite_conversion.fb_pixel_purchase) que NÃO devem ser somados.
-      // Para evitar duplicidade (ex.: 1 virar 3), usamos o MAIOR valor entre as chaves conhecidas.
-      // Fallback: quando o array `actions` vier incompleto, estimamos via spend / CPP.
+      // Resultados = "Compras" no Ads Manager.
+      // Para ficar 100% determinístico e evitar duplicidade por múltiplos action_types,
+      // calculamos exclusivamente via: spend / CPP (cost_per_action_type).
+      // Isso assume que a coluna "Custo por Resultado" (CPP) está correta.
+      // Se não houver CPP, retorna 0.
       if(col.derived==='purchase_count'){
-        var a1 = this._actionsToMap(ins.actions);
-        var count = 0;
+        var cpa = this._actionsToMap(ins.cost_per_action_type);
+        var cpp = null;
+        // prioridades (mantidas para bater com CPR)
+        if(cpa['purchase'] !== undefined) cpp = cpa['purchase'];
+        else if(cpa['offsite_conversion.fb_pixel_purchase'] !== undefined) cpp = cpa['offsite_conversion.fb_pixel_purchase'];
+        else if(cpa['omni_purchase'] !== undefined) cpp = cpa['omni_purchase'];
+        else if(cpa['onsite_conversion.purchase'] !== undefined) cpp = cpa['onsite_conversion.purchase'];
+        else if(cpa['app_custom_event.fb_mobile_purchase'] !== undefined) cpp = cpa['app_custom_event.fb_mobile_purchase'];
 
-        // Chaves de compra mais comuns (evitar chaves genéricas que causam false-positive)
-        var purchaseKeys = [
-          'purchase',
-          'offsite_conversion.fb_pixel_purchase',
-          'omni_purchase',
-          'onsite_conversion.purchase',
-          'app_custom_event.fb_mobile_purchase'
-        ];
-
-        for(var pi=0; pi<purchaseKeys.length; pi++){
-          var v = a1[purchaseKeys[pi]] || 0;
-          if(v > count) count = v;
-        }
-
-        // Fallback: estimativa por spend/custo_por_compra (CPP)
-        if(count <= 0){
-          var cpa = this._actionsToMap(ins.cost_per_action_type);
-          var cpp = null;
-          // prioridades (mantidas para bater com CPR)
-          if(cpa['purchase'] !== undefined) cpp = cpa['purchase'];
-          else if(cpa['omni_purchase'] !== undefined) cpp = cpa['omni_purchase'];
-          else if(cpa['offsite_conversion.fb_pixel_purchase'] !== undefined) cpp = cpa['offsite_conversion.fb_pixel_purchase'];
-          else if(cpa['app_custom_event.fb_mobile_purchase'] !== undefined) cpp = cpa['app_custom_event.fb_mobile_purchase'];
-
-          var spend = parseFloat(ins.spend || 0) || 0;
-          var cppNum = parseFloat(cpp);
-          if(cppNum && cppNum > 0 && spend > 0){
-            count = Math.round(spend / cppNum);
-          }
-        }
-
-        return count;
+        var spend = parseFloat(ins.spend || 0) || 0;
+        var cppNum = parseFloat(cpp);
+        if(!cppNum || cppNum <= 0) return 0;
+        // Quanto mais próximo do Ads Manager, melhor arredondar para inteiro.
+        return Math.round(spend / cppNum);
       }
 
       // Custo por Resultado = custo por compra (purchase) como no Ads Manager
