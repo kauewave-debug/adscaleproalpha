@@ -1,0 +1,1091 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-accent="blue" data-density="comfortable" data-theme="dark" data-motion="full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ADS Manager PRO - Marketing Automation</title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css?v=20260129">
+</head>
+<body class="bg-gray-950 text-white font-sans h-screen flex overflow-hidden selection:bg-blue-500/30">
+
+    <!-- Sidebar -->
+    <aside class="w-72 bg-gray-900/80 backdrop-blur-xl border-r border-gray-800 flex-shrink-0 flex flex-col transition-all duration-300 z-30">
+        <div class="h-16 px-6 border-b border-gray-800 flex items-center justify-between gap-3 shrink-0">
+            <div class="flex items-center gap-3 min-w-0">
+                <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/20 shrink-0">
+                    <i class="fas fa-bolt text-white text-sm"></i>
+                </div>
+                <div class="min-w-0 flex-1">
+                    <h1 class="text-sm font-bold text-white leading-tight truncate tracking-tight">ADS Manager</h1>
+                    <p class="text-[10px] text-gray-500 truncate font-medium">PRO Suite</p>
+                </div>
+            </div>
+            <button onclick="uiPrefs.toggleSidebar()" class="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors shrink-0">
+                <i class="fas fa-angles-left sidebar-collapse-icon text-xs"></i>
+            </button>
+        </div>
+        
+        <nav class="flex-1 overflow-y-auto py-6 px-3 custom-scrollbar space-y-1">
+            <p class="px-3 text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Principal</p>
+            
+            <button onclick="router.navigate('dashboard')" class="nav-item group w-full text-left px-3 py-2.5 rounded-xl border border-transparent transition-all flex items-center gap-3 text-gray-400 hover:text-white hover:bg-gray-800/50" data-target="dashboard">
+                <i class="fas fa-chart-pie w-5 text-center transition-transform group-hover:scale-110"></i>
+                <span class="font-medium text-sm">Dashboard</span>
+            </button>
+            
+            <button onclick="router.navigate('profiles')" class="nav-item group w-full text-left px-3 py-2.5 rounded-xl border border-transparent transition-all flex items-center gap-3 text-gray-400 hover:text-white hover:bg-gray-800/50" data-target="profiles">
+                <i class="fab fa-facebook w-5 text-center transition-transform group-hover:scale-110"></i>
+                <span class="font-medium text-sm">Perfis & BMs</span>
+            </button>
+
+            <div class="pt-4 pb-2">
+                <p class="px-3 text-[10px] font-bold text-gray-500 uppercase tracking-widest">Gestão</p>
+            </div>
+
+            <button onclick="router.navigate('campaigns')" class="nav-item group w-full text-left px-3 py-2.5 rounded-xl border border-transparent transition-all flex items-center gap-3 text-gray-400 hover:text-white hover:bg-gray-800/50" data-target="campaigns">
+                <i class="fas fa-bullhorn w-5 text-center transition-transform group-hover:scale-110"></i>
+                <span class="font-medium text-sm">Gerenciador Ads</span>
+            </button>
+            
+            <button onclick="router.navigate('rules')" class="nav-item group w-full text-left px-3 py-2.5 rounded-xl border border-transparent transition-all flex items-center gap-3 text-gray-400 hover:text-white hover:bg-gray-800/50" data-target="rules">
+                <i class="fas fa-robot w-5 text-center transition-transform group-hover:scale-110"></i>
+                <span class="font-medium text-sm">Regras Auto</span>
+            </button>
+            
+            <button onclick="router.navigate('pages')" class="nav-item group w-full text-left px-3 py-2.5 rounded-xl border border-transparent transition-all flex items-center gap-3 text-gray-400 hover:text-white hover:bg-gray-800/50" data-target="pages">
+                <i class="fas fa-flag w-5 text-center transition-transform group-hover:scale-110"></i>
+                <span class="font-medium text-sm">Páginas</span>
+            </button>
+
+            <div class="pt-4 pb-2">
+                <p class="px-3 text-[10px] font-bold text-gray-500 uppercase tracking-widest">Sistema</p>
+            </div>
+
+            <button onclick="router.navigate('settings')" class="nav-item group w-full text-left px-3 py-2.5 rounded-xl border border-transparent transition-all flex items-center gap-3 text-gray-400 hover:text-white hover:bg-gray-800/50" data-target="settings">
+                <i class="fas fa-cog w-5 text-center transition-transform group-hover:scale-110"></i>
+                <span class="font-medium text-sm">Configurações</span>
+            </button>
+        </nav>
+
+        <div class="p-4 border-t border-gray-800 bg-gray-900/50">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-full bg-gradient-to-br from-gray-700 to-gray-800 border border-gray-600 flex items-center justify-center font-bold text-xs shadow-inner">A</div>
+                <div class="flex-1 min-w-0">
+                    <p class="text-xs font-bold text-white truncate">Admin User</p>
+                    <div class="flex items-center gap-1.5 mt-0.5">
+                        <span class="w-1.5 h-1.5 bg-emerald-500 rounded-full shadow-[0_0_5px_rgba(16,185,129,0.6)]"></span>
+                        <span class="text-[10px] text-gray-400">Online</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col min-w-0 bg-gray-950/50 relative">
+        <!-- Global Action Loading Overlay -->
+        <div id="action-loading-overlay" class="fixed inset-0 z-[100] bg-gray-950/80 backdrop-blur-md flex items-center justify-center hidden animate-fade-in">
+            <div class="flex flex-col items-center gap-5 p-8 bg-gray-900 border border-gray-700 rounded-3xl shadow-2xl transform scale-100">
+                <div class="relative w-16 h-16">
+                    <div class="absolute inset-0 rounded-full border-4 border-gray-800"></div>
+                    <div class="absolute inset-0 rounded-full border-4 border-blue-500 border-t-transparent animate-spin"></div>
+                </div>
+                <div class="text-center">
+                    <h4 class="text-lg font-bold text-white mb-1">Processando...</h4>
+                    <p class="text-xs text-gray-400">Aguarde a confirmação da Meta</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Header -->
+        <header class="h-16 px-6 bg-gray-950/80 backdrop-blur-md border-b border-gray-800 flex items-center justify-between sticky top-0 z-20">
+            <div class="flex items-center gap-4">
+                <h2 id="page-title" class="text-lg font-bold text-white tracking-tight">Dashboard</h2>
+            </div>
+            <div class="flex items-center gap-3">
+                <div class="h-8 w-px bg-gray-800 mx-1"></div>
+                <button onclick="toggleLogs()" class="relative p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors" title="System Logs">
+                    <i class="fas fa-terminal text-sm"></i>
+                    <span id="log-badge" class="absolute top-1.5 right-1.5 w-2 h-2 bg-blue-500 rounded-full hidden animate-pulse border border-gray-900"></span>
+                </button>
+                <button class="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors">
+                    <i class="far fa-bell text-sm"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- Views Container -->
+        <div id="app-container" class="flex-1 overflow-y-auto p-6 custom-scrollbar scroll-smooth">
+            
+            <!-- View: Dashboard (Modern Grid) -->
+            <div id="view-dashboard" class="view-section animate-fade-in max-w-7xl mx-auto">
+                <div class="mb-8">
+                    <h2 class="text-2xl font-bold text-white mb-2">Visão Geral</h2>
+                    <p class="text-gray-400 text-sm">Acompanhe o desempenho do seu ecossistema de anúncios.</p>
+                </div>
+
+                <!-- Stats Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
+                    <div class="metric-card bg-gray-900 border border-gray-800 p-5 rounded-2xl">
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-400">
+                                <i class="fab fa-facebook text-lg"></i>
+                            </div>
+                            <span class="text-xs font-bold text-green-400 bg-green-400/10 px-2 py-0.5 rounded-full border border-green-400/20">Ativo</span>
+                        </div>
+                        <p class="text-gray-500 text-xs font-medium uppercase tracking-wider mb-1">Perfis</p>
+                        <h3 class="text-3xl font-bold text-white" id="metric-profiles">0</h3>
+                    </div>
+
+                    <div class="metric-card bg-gray-900 border border-gray-800 p-5 rounded-2xl">
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-400">
+                                <i class="fas fa-bullhorn text-lg"></i>
+                            </div>
+                        </div>
+                        <p class="text-gray-500 text-xs font-medium uppercase tracking-wider mb-1">Contas de Anúncio</p>
+                        <h3 class="text-3xl font-bold text-white" id="metric-accounts">0</h3>
+                    </div>
+
+                    <div class="metric-card bg-gray-900 border border-gray-800 p-5 rounded-2xl">
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-400">
+                                <i class="fas fa-robot text-lg"></i>
+                            </div>
+                        </div>
+                        <p class="text-gray-500 text-xs font-medium uppercase tracking-wider mb-1">Regras Ativas</p>
+                        <h3 class="text-3xl font-bold text-white" id="metric-rules">0</h3>
+                    </div>
+
+                    <div class="metric-card bg-gray-900 border border-gray-800 p-5 rounded-2xl">
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="w-10 h-10 rounded-xl bg-orange-500/10 flex items-center justify-center text-orange-400">
+                                <i class="fas fa-server text-lg"></i>
+                            </div>
+                            <span class="text-xs font-bold text-gray-400 bg-gray-800 px-2 py-0.5 rounded-full border border-gray-700">v19.0</span>
+                        </div>
+                        <p class="text-gray-500 text-xs font-medium uppercase tracking-wider mb-1">API Status</p>
+                        <h3 class="text-3xl font-bold text-white">Online</h3>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- Quick Actions -->
+                    <div class="lg:col-span-2 bg-gradient-to-br from-gray-900 to-gray-900/50 border border-gray-800 rounded-3xl p-6 relative overflow-hidden">
+                        <div class="absolute top-0 right-0 w-64 h-64 bg-blue-600/5 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
+                        
+                        <h3 class="text-lg font-bold text-white mb-6 relative z-10">Acesso Rápido</h3>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 relative z-10">
+                            <button onclick="router.navigate('profiles'); profilesManager.openModal()" class="flex flex-col items-center justify-center gap-3 p-6 bg-gray-800/50 hover:bg-blue-600/10 border border-gray-700 hover:border-blue-500/50 rounded-2xl transition-all group">
+                                <div class="w-12 h-12 rounded-full bg-blue-500/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                    <i class="fas fa-plus text-blue-400 text-lg"></i>
+                                </div>
+                                <span class="font-medium text-sm text-gray-300 group-hover:text-white">Conectar Perfil</span>
+                            </button>
+
+                            <button onclick="router.navigate('rules'); rulesManager.openEditor()" class="flex flex-col items-center justify-center gap-3 p-6 bg-gray-800/50 hover:bg-purple-600/10 border border-gray-700 hover:border-purple-500/50 rounded-2xl transition-all group">
+                                <div class="w-12 h-12 rounded-full bg-purple-500/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                    <i class="fas fa-magic text-purple-400 text-lg"></i>
+                                </div>
+                                <span class="font-medium text-sm text-gray-300 group-hover:text-white">Criar Regra</span>
+                            </button>
+
+                            <button onclick="router.navigate('campaigns')" class="flex flex-col items-center justify-center gap-3 p-6 bg-gray-800/50 hover:bg-emerald-600/10 border border-gray-700 hover:border-emerald-500/50 rounded-2xl transition-all group">
+                                <div class="w-12 h-12 rounded-full bg-emerald-500/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                    <i class="fas fa-chart-line text-emerald-400 text-lg"></i>
+                                </div>
+                                <span class="font-medium text-sm text-gray-300 group-hover:text-white">Ver Campanhas</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- System Health -->
+                    <div class="bg-gray-900 border border-gray-800 rounded-3xl p-6 flex flex-col justify-between">
+                        <div>
+                            <h3 class="text-lg font-bold text-white mb-4">Saúde do Sistema</h3>
+                            <div class="space-y-4">
+                                <div>
+                                    <div class="flex justify-between text-xs mb-1">
+                                        <span class="text-gray-400">Tokens Válidos</span>
+                                        <span class="text-green-400 font-bold">100%</span>
+                                    </div>
+                                    <div class="w-full bg-gray-800 rounded-full h-1.5">
+                                        <div class="bg-green-500 h-1.5 rounded-full" style="width: 100%"></div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="flex justify-between text-xs mb-1">
+                                        <span class="text-gray-400">Armazenamento Local</span>
+                                        <span class="text-blue-400 font-bold" id="storage-usage-dashboard">...</span>
+                                    </div>
+                                    <div class="w-full bg-gray-800 rounded-full h-1.5">
+                                        <div class="bg-blue-500 h-1.5 rounded-full" style="width: 15%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-6 p-4 rounded-xl bg-blue-900/10 border border-blue-900/30">
+                            <div class="flex gap-3">
+                                <i class="fas fa-info-circle text-blue-400 mt-0.5"></i>
+                                <div>
+                                    <p class="text-sm font-bold text-blue-100">Dica PRO</p>
+                                    <p class="text-xs text-blue-300/80 mt-1">Use a tecla <kbd class="px-1.5 py-0.5 bg-gray-900 rounded border border-gray-700 font-mono text-[10px]">ESC</kbd> para fechar modais rapidamente.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- View: Profiles -->
+            <div id="view-profiles" class="view-section hidden animate-fade-in max-w-7xl mx-auto">
+                <div class="flex flex-wrap items-center justify-between gap-4 mb-8">
+                    <div>
+                        <h2 class="text-2xl font-bold text-white">Perfis Conectados</h2>
+                        <p class="text-gray-400 text-sm mt-1">Gerencie suas conexões e tokens de acesso.</p>
+                    </div>
+                    <button onclick="profilesManager.openModal()" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold rounded-xl transition-all hover:shadow-lg hover:shadow-blue-500/20 flex items-center gap-2">
+                        <i class="fas fa-plus"></i> Novo Perfil
+                    </button>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="profiles-list"></div>
+            </div>
+
+            <!-- View: Campaigns -->
+            <div id="view-campaigns" class="view-section hidden animate-fade-in flex flex-col h-full">
+                <!-- Toolbar -->
+                <div class="flex flex-wrap items-center justify-between gap-4 mb-6 shrink-0">
+                    <div id="account-selector-container"></div>
+                    <!-- Date Picker Trigger + Popover (Facebook-like) -->
+                    <div class="relative" id="ads-date-picker-wrapper">
+                        <button id="ads-date-trigger" type="button" onclick="adsManager.toggleDatePicker(event)" class="flex items-center gap-3 px-4 py-2.5 bg-gray-900 border border-gray-800 hover:border-gray-600 rounded-xl transition-all group">
+                            <div class="w-9 h-9 rounded-lg bg-gray-800 border border-gray-700 flex items-center justify-center text-gray-300 group-hover:text-white">
+                                <i class="far fa-calendar text-sm"></i>
+                            </div>
+                            <div class="text-left">
+                                <p class="text-[10px] text-gray-500 uppercase tracking-wider font-bold">Período</p>
+                                <p id="ads-date-trigger-label" class="text-sm font-semibold text-white leading-tight">—</p>
+                            </div>
+                            <i class="fas fa-chevron-down text-gray-500 group-hover:text-white transition-colors text-xs"></i>
+                        </button>
+
+                        <div id="ads-date-picker" class="hidden absolute right-0 mt-3 w-[860px] max-w-[92vw] bg-gray-950/95 backdrop-blur-xl border border-gray-800 rounded-3xl shadow-2xl overflow-hidden z-50">
+                            <div class="p-5 border-b border-gray-800 bg-gray-900/40 flex items-center justify-between">
+                                <div>
+                                    <h4 class="text-sm font-extrabold text-white tracking-tight">Selecionar intervalo</h4>
+                                    <p class="text-[10px] text-gray-500 mt-0.5" id="ads-date-subtitle">Horário local</p>
+                                </div>
+                                <button type="button" onclick="adsManager.closeDatePicker()" class="w-9 h-9 rounded-full bg-gray-900 hover:bg-gray-800 border border-gray-800 text-gray-400 hover:text-white transition-colors">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+
+                            <div class="grid grid-cols-1 lg:grid-cols-3 min-h-[420px]">
+                                <!-- Left: Presets -->
+                                <div class="lg:col-span-1 border-r border-gray-800 p-5 space-y-5">
+                                    <div>
+                                        <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Usados recentemente</p>
+                                        <div id="ads-date-recent" class="space-y-1"></div>
+                                    </div>
+
+                                    <div>
+                                        <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Predefinidos</p>
+                                        <div class="space-y-1">
+                                            <button type="button" onclick="adsManager.setDatePreset('today')" class="ads-date-preset-row" data-preset="today">Hoje</button>
+                                            <button type="button" onclick="adsManager.setDatePreset('yesterday')" class="ads-date-preset-row" data-preset="yesterday">Ontem</button>
+                                            <button type="button" onclick="adsManager.setDatePreset('last_2d')" class="ads-date-preset-row" data-preset="last_2d">Hoje e ontem</button>
+                                            <button type="button" onclick="adsManager.setDatePreset('last_7d')" class="ads-date-preset-row" data-preset="last_7d">Últimos 7 dias</button>
+                                            <button type="button" onclick="adsManager.setDatePreset('last_14d')" class="ads-date-preset-row" data-preset="last_14d">Últimos 14 dias</button>
+                                            <button type="button" onclick="adsManager.setDatePreset('last_30d')" class="ads-date-preset-row" data-preset="last_30d">Últimos 30 dias</button>
+                                            <button type="button" onclick="adsManager.setDatePreset('last_90d')" class="ads-date-preset-row" data-preset="last_90d">Últimos 90 dias</button>
+                                            <div class="h-px bg-gray-800/70 my-2"></div>
+                                            <button type="button" onclick="adsManager.setDatePreset('this_month')" class="ads-date-preset-row" data-preset="this_month">Este mês</button>
+                                            <button type="button" onclick="adsManager.setDatePreset('last_month')" class="ads-date-preset-row" data-preset="last_month">Mês passado</button>
+                                            <div class="h-px bg-gray-800/70 my-2"></div>
+                                            <button type="button" onclick="adsManager._selectCustomMode()" class="ads-date-preset-row" data-preset="CUSTOM"><i class="fas fa-sliders-h mr-2 opacity-70"></i> Personalizado</button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Right: Calendar (2 months) -->
+                                <div class="lg:col-span-2 p-5">
+                                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+                                        <div class="flex items-center gap-2">
+                                            <button type="button" onclick="adsManager._dpPrevMonth()" class="w-9 h-9 rounded-xl bg-gray-900 hover:bg-gray-800 border border-gray-800 text-gray-300 hover:text-white transition-colors" title="Mês anterior">
+                                                <i class="fas fa-chevron-left"></i>
+                                            </button>
+                                            <button type="button" onclick="adsManager._dpNextMonth()" class="w-9 h-9 rounded-xl bg-gray-900 hover:bg-gray-800 border border-gray-800 text-gray-300 hover:text-white transition-colors" title="Próximo mês">
+                                                <i class="fas fa-chevron-right"></i>
+                                            </button>
+                                        </div>
+
+                                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full sm:w-auto">
+                                            <div class="bg-gray-900 border border-gray-800 rounded-2xl px-3 py-2">
+                                                <p class="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-1">Início</p>
+                                                <input id="ads-date-since" type="text" readonly class="w-full bg-transparent text-sm text-white outline-none" placeholder="dd/mm/aaaa">
+                                            </div>
+                                            <div class="bg-gray-900 border border-gray-800 rounded-2xl px-3 py-2">
+                                                <p class="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-1">Fim</p>
+                                                <input id="ads-date-until" type="text" readonly class="w-full bg-transparent text-sm text-white outline-none" placeholder="dd/mm/aaaa">
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div>
+                                            <div class="flex items-center justify-between mb-2">
+                                                <p id="ads-cal-left-title" class="text-sm font-extrabold text-white">—</p>
+                                            </div>
+                                            <div id="ads-cal-left" class="ads-cal"></div>
+                                        </div>
+                                        <div>
+                                            <div class="flex items-center justify-between mb-2">
+                                                <p id="ads-cal-right-title" class="text-sm font-extrabold text-white">—</p>
+                                            </div>
+                                            <div id="ads-cal-right" class="ads-cal"></div>
+                                        </div>
+                                    </div>
+
+                                    <div class="mt-5 flex items-center justify-between gap-3">
+                                        <p class="text-[10px] text-gray-500">Dica: clique no início e fim para selecionar um intervalo.</p>
+                                        <div class="flex gap-2">
+                                            <button type="button" onclick="adsManager.resetDateToLastPreset()" class="columns-btn">Limpar</button>
+                                            <button type="button" onclick="adsManager.closeDatePicker()" class="columns-btn">Cancelar</button>
+                                            <button type="button" onclick="adsManager.applyDatePicker()" class="columns-btn columns-btn-primary">Aplicar</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="adsManager.openColumnsModal()" class="px-4 py-2.5 text-xs font-semibold rounded-xl bg-gray-900 hover:bg-gray-800 border border-gray-800 text-gray-300 hover:text-white transition-all flex items-center gap-2">
+                            <i class="fas fa-columns"></i> Colunas
+                        </button>
+                        <button onclick="adsManager.loadData()" class="p-2.5 bg-gray-900 hover:bg-gray-800 border border-gray-800 rounded-xl text-gray-400 hover:text-white transition-colors" title="Atualizar">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Main Data Card -->
+                <div class="flex-1 bg-gray-900 border border-gray-800 rounded-3xl overflow-hidden flex flex-col min-h-0 shadow-2xl">
+                    <!-- Tabs -->
+                    <div class="flex items-center border-b border-gray-800 bg-gray-900/50 pt-2 px-2 gap-1">
+                        <button onclick="adsManager.setViewLevel('campaigns')" data-tab-level="campaigns" class="group relative px-6 py-3 text-sm font-bold text-gray-400 hover:text-white border-b-2 border-transparent hover:bg-gray-800/50 rounded-t-lg transition-all flex items-center gap-2">
+                            <i class="fas fa-folder text-xs opacity-70"></i> Campanhas
+                            <span id="badge-campaigns" class="hidden ml-1 px-1.5 py-0.5 text-[10px] bg-blue-500 text-white rounded-full"><span id="count-campaigns">0</span><i onclick="event.stopPropagation(); adsManager.clearSelection('campaigns')" class="fas fa-times ml-1 hover:text-blue-200"></i></span>
+                        </button>
+                        <button onclick="adsManager.setViewLevel('adsets')" data-tab-level="adsets" class="group relative px-6 py-3 text-sm font-bold text-gray-400 hover:text-white border-b-2 border-transparent hover:bg-gray-800/50 rounded-t-lg transition-all flex items-center gap-2">
+                            <i class="fas fa-layer-group text-xs opacity-70"></i> Conjuntos
+                            <span id="badge-adsets" class="hidden ml-1 px-1.5 py-0.5 text-[10px] bg-blue-500 text-white rounded-full"><span id="count-adsets">0</span><i onclick="event.stopPropagation(); adsManager.clearSelection('adsets')" class="fas fa-times ml-1 hover:text-blue-200"></i></span>
+                        </button>
+                        <button onclick="adsManager.setViewLevel('ads')" data-tab-level="ads" class="group relative px-6 py-3 text-sm font-bold text-gray-400 hover:text-white border-b-2 border-transparent hover:bg-gray-800/50 rounded-t-lg transition-all flex items-center gap-2">
+                            <i class="fas fa-ad text-xs opacity-70"></i> Anúncios
+                            <span id="badge-ads" class="hidden ml-1 px-1.5 py-0.5 text-[10px] bg-blue-500 text-white rounded-full"><span id="count-ads">0</span><i onclick="event.stopPropagation(); adsManager.clearSelection('ads')" class="fas fa-times ml-1 hover:text-blue-200"></i></span>
+                        </button>
+                    </div>
+
+                    <!-- Bulk Actions -->
+                    <div id="bulk-action-bar" class="hidden px-4 py-3 bg-blue-900/10 border-b border-blue-900/30 flex items-center justify-between gap-4 animate-fade-in">
+                        <div class="flex items-center gap-3 text-sm">
+                            <div class="flex items-center justify-center w-6 h-6 rounded bg-blue-500 text-white font-bold text-xs" id="bulk-selected-count">0</div>
+                            <span class="text-blue-200 font-medium" id="bulk-selected-label">Selecionados</span>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="adsManager.openBulkEditor()" class="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-white text-xs font-bold rounded-lg border border-gray-700 transition-colors flex items-center gap-2"><i class="fas fa-pen"></i> Editar</button>
+                            <button onclick="adsManager.bulkSetStatus('ACTIVE')" class="px-3 py-1.5 bg-green-500/20 hover:bg-green-500/30 text-green-400 text-xs font-bold rounded-lg border border-green-500/30 transition-colors"><i class="fas fa-play"></i> Ativar</button>
+                            <button onclick="adsManager.bulkSetStatus('PAUSED')" class="px-3 py-1.5 bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-400 text-xs font-bold rounded-lg border border-yellow-500/30 transition-colors"><i class="fas fa-pause"></i> Pausar</button>
+                            <button id="btn-bulk-archive" onclick="adsManager.bulkSetStatus('ARCHIVED')" class="px-3 py-1.5 bg-red-500/20 hover:bg-red-500/30 text-red-400 text-xs font-bold rounded-lg border border-red-500/30 transition-colors"><i class="fas fa-archive"></i></button>
+                            <div class="w-px h-6 bg-blue-800/30 mx-1"></div>
+                            <button onclick="adsManager.clearCurrentSelection()" class="text-blue-300 hover:text-white text-xs font-bold px-2">Limpar</button>
+                        </div>
+                    </div>
+
+                    <!-- Table Area -->
+                    <div class="flex-1 overflow-auto custom-scrollbar relative bg-gray-900">
+                        <div id="table-loading" class="hidden absolute inset-0 bg-gray-900/80 backdrop-blur-sm z-50 flex items-center justify-center">
+                            <div class="flex flex-col items-center gap-3">
+                                <i class="fas fa-circle-notch fa-spin text-3xl text-blue-500"></i>
+                                <span class="text-sm font-medium text-gray-300">Carregando dados...</span>
+                            </div>
+                        </div>
+                        <table class="w-full data-table text-left border-collapse">
+                            <thead class="bg-gray-900 sticky top-0 z-40">
+                                <tr id="ads-table-head-row"></tr>
+                            </thead>
+                            <tbody id="ads-table-body" class="divide-y divide-gray-800">
+                                <tr><td colspan="99" class="py-32 text-center text-gray-500">Selecione uma conta para começar</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="bg-gray-900 border-t border-gray-800 px-4 py-2 text-[10px] text-gray-500 flex justify-between uppercase tracking-wider font-bold">
+                        <span>Total: <span id="total-items" class="text-white">0</span></span>
+                        <span>API v19.0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- View: Rules -->
+            <div id="view-rules" class="view-section hidden animate-fade-in max-w-7xl mx-auto">
+                <div class="flex flex-wrap items-start justify-between gap-4 mb-8">
+                    <div>
+                        <h2 class="text-2xl font-bold text-white">Regras Automatizadas</h2>
+                        <p class="text-gray-400 text-sm mt-1">Crie lógicas inteligentes para otimizar suas campanhas 24/7.</p>
+                    </div>
+                    <div class="flex flex-col sm:flex-row gap-3 sm:items-center">
+                        <div class="flex items-center gap-2 bg-gray-900 border border-gray-800 rounded-xl p-1">
+                            <button id="btn-scheduler-toggle" onclick="rulesManager.toggleSchedulerPaused()" class="px-3 py-2 text-xs font-bold rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-200 transition-colors flex items-center gap-2">
+                                <i class="fas fa-pause"></i>
+                                <span>Pausar Scheduler</span>
+                            </button>
+                            <span id="scheduler-status-chip" class="text-[10px] font-bold px-2 py-1 rounded-lg border border-emerald-500/20 bg-emerald-500/10 text-emerald-300">ATIVO</span>
+                        </div>
+                        <button onclick="rulesManager.openEditor()" class="px-5 py-2.5 bg-purple-600 hover:bg-purple-500 text-white text-sm font-semibold rounded-xl transition-all hover:shadow-lg hover:shadow-purple-500/20 flex items-center gap-2">
+                            <i class="fas fa-plus"></i> Nova Regra
+                        </button>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6" id="rules-list"></div>
+            </div>
+
+            <!-- View: Pages -->
+            <div id="view-pages" class="view-section hidden animate-fade-in max-w-7xl mx-auto">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+                    <div>
+                        <h2 class="text-2xl font-bold text-white">Páginas & Limites</h2>
+                        <p class="text-gray-400 text-sm mt-1">Monitore o uso e reputação das suas Fan Pages.</p>
+                    </div>
+                    <div class="flex flex-col sm:flex-row gap-3">
+                        <div class="relative">
+                            <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-xs"></i>
+                            <input type="text" oninput="pagesManager.search(this.value)" placeholder="Buscar página..." class="w-full sm:w-64 bg-gray-900 border border-gray-800 rounded-xl pl-9 pr-4 py-2.5 text-sm text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all">
+                        </div>
+                        <div class="flex bg-gray-900 border border-gray-800 rounded-xl p-1 gap-1">
+                            <button onclick="pagesManager.toggleView('grid')" id="btn-view-grid" class="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 active-view transition-all"><i class="fas fa-th-large"></i></button>
+                            <button onclick="pagesManager.toggleView('list')" id="btn-view-list" class="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-all"><i class="fas fa-list"></i></button>
+                        </div>
+                        <button onclick="pagesManager.loadPages()" class="p-2.5 bg-gray-900 border border-gray-800 hover:bg-gray-800 rounded-xl text-gray-400 hover:text-white transition-colors"><i class="fas fa-sync-alt"></i></button>
+                    </div>
+                </div>
+                <div id="pages-container" class="animate-fade-in"></div>
+
+                <!-- Pagination (UI) -->
+                <div id="pages-pagination" class="mt-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div class="flex flex-wrap items-center gap-3 text-xs text-gray-400">
+                        <span id="pages-pagination-summary" class="text-gray-400">—</span>
+                        <span class="hidden sm:inline text-gray-700">•</span>
+                        <label class="flex items-center gap-2">
+                            <span class="text-gray-500">Por página</span>
+                            <select id="pages-page-size" onchange="pagesManager.setPageSize(this.value)" class="bg-gray-900 border border-gray-800 rounded-xl px-3 py-2 text-xs text-white">
+                                <option value="12">12</option>
+                                <option value="24">24</option>
+                                <option value="48">48</option>
+                                <option value="96">96</option>
+                            </select>
+                        </label>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button id="btn-pages-prev" type="button" onclick="pagesManager.prevPage()" class="columns-btn">Anterior</button>
+                        <span id="pages-page-indicator" class="text-xs text-gray-400 px-2">1/1</span>
+                        <button id="btn-pages-next" type="button" onclick="pagesManager.nextPage()" class="columns-btn">Próxima</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- View: Settings -->
+            <div id="view-settings" class="view-section hidden animate-fade-in max-w-3xl mx-auto">
+                <div class="flex items-start justify-between gap-4 mb-8">
+                    <div>
+                        <h2 class="text-2xl font-bold text-white">Configurações</h2>
+                        <p class="text-gray-400 text-sm mt-1">Personalize a interface e comportamento do painel.</p>
+                    </div>
+                    <button onclick="uiPrefs.resetUI()" class="px-4 py-2 bg-gray-900 hover:bg-gray-800 border border-gray-800 rounded-xl text-xs font-bold text-gray-300 hover:text-white transition-colors">Resetar UI</button>
+                </div>
+
+                <div class="bg-gray-900 border border-gray-800 rounded-3xl overflow-hidden mb-8">
+                    <div class="p-6 border-b border-gray-800">
+                        <h3 class="text-lg font-bold text-white">Preferências de Interface</h3>
+                        <p class="text-xs text-gray-500 mt-1">As preferências são aplicadas em todo o sistema e salvas neste navegador.</p>
+                    </div>
+
+                    <div class="p-6 space-y-7">
+                        <!-- Theme -->
+                        <div class="flex items-center justify-between gap-6">
+                            <div>
+                                <p class="text-sm font-medium text-white">Tema</p>
+                                <p class="text-xs text-gray-500">Alterna a paleta do painel (Dark/Light).</p>
+                            </div>
+                            <div class="flex bg-gray-950 rounded-xl p-1 border border-gray-800">
+                                <button id="btn-theme-dark" onclick="uiPrefs.setTheme('dark')" class="px-3 py-1.5 text-xs rounded-lg text-gray-400 hover:text-white">Dark</button>
+                                <button id="btn-theme-light" onclick="uiPrefs.setTheme('light')" class="px-3 py-1.5 text-xs rounded-lg text-gray-400 hover:text-white">Light</button>
+                            </div>
+                        </div>
+
+                        <!-- Accent -->
+                        <div class="flex items-center justify-between gap-6">
+                            <div>
+                                <p class="text-sm font-medium text-white">Cor de Destaque</p>
+                                <p class="text-xs text-gray-500">Escolha a cor principal do sistema.</p>
+                            </div>
+                            <div class="flex gap-2">
+                                <button data-accent-btn="blue" onclick="uiPrefs.setAccent('blue')" class="w-7 h-7 rounded-full bg-blue-500 ring-2 ring-offset-2 ring-offset-gray-900 ring-transparent hover:ring-blue-500 transition-all" title="Blue"></button>
+                                <button data-accent-btn="purple" onclick="uiPrefs.setAccent('purple')" class="w-7 h-7 rounded-full bg-purple-500 ring-2 ring-offset-2 ring-offset-gray-900 ring-transparent hover:ring-purple-500 transition-all" title="Purple"></button>
+                                <button data-accent-btn="emerald" onclick="uiPrefs.setAccent('emerald')" class="w-7 h-7 rounded-full bg-emerald-500 ring-2 ring-offset-2 ring-offset-gray-900 ring-transparent hover:ring-emerald-500 transition-all" title="Emerald"></button>
+                                <button data-accent-btn="rose" onclick="uiPrefs.setAccent('rose')" class="w-7 h-7 rounded-full bg-rose-500 ring-2 ring-offset-2 ring-offset-gray-900 ring-transparent hover:ring-rose-500 transition-all" title="Rose"></button>
+                                <button data-accent-btn="amber" onclick="uiPrefs.setAccent('amber')" class="w-7 h-7 rounded-full bg-amber-500 ring-2 ring-offset-2 ring-offset-gray-900 ring-transparent hover:ring-amber-500 transition-all" title="Amber"></button>
+                            </div>
+                        </div>
+
+                        <!-- Density -->
+                        <div class="flex items-center justify-between gap-6">
+                            <div>
+                                <p class="text-sm font-medium text-white">Densidade</p>
+                                <p class="text-xs text-gray-500">Ajusta espaçamento e altura de linhas/tabelas.</p>
+                            </div>
+                            <div class="flex bg-gray-950 rounded-xl p-1 border border-gray-800">
+                                <button id="btn-density-comfortable" onclick="uiPrefs.setDensity('comfortable')" class="px-3 py-1.5 text-xs rounded-lg text-gray-400 hover:text-white">Normal</button>
+                                <button id="btn-density-compact" onclick="uiPrefs.setDensity('compact')" class="px-3 py-1.5 text-xs rounded-lg text-gray-400 hover:text-white">Compacto</button>
+                            </div>
+                        </div>
+
+                        <!-- Sidebar -->
+                        <div class="flex items-center justify-between gap-6">
+                            <div>
+                                <p class="text-sm font-medium text-white">Sidebar Compacta</p>
+                                <p class="text-xs text-gray-500">Deixa a sidebar em modo ícones (recomendado em telas menores).</p>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input id="toggle-sidebar" type="checkbox" class="sr-only peer" onchange="uiPrefs.setSidebarCollapsed(this.checked)">
+                                <div class="w-11 h-6 bg-gray-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-'' after:absolute after:top-[2px] after:left-[2px] after:bg-gray-400 peer-checked:after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600 border border-gray-700"></div>
+                            </label>
+                        </div>
+
+                        <!-- Motion -->
+                        <div class="flex items-center justify-between gap-6">
+                            <div>
+                                <p class="text-sm font-medium text-white">Animações</p>
+                                <p class="text-xs text-gray-500">Reduz animações/transições (melhora performance e acessibilidade).</p>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input id="toggle-motion" type="checkbox" class="sr-only peer" onchange="uiPrefs.setMotion(this.checked ? 'reduce' : 'full')">
+                                <div class="w-11 h-6 bg-gray-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-'' after:absolute after:top-[2px] after:left-[2px] after:bg-gray-400 peer-checked:after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600 border border-gray-700"></div>
+                            </label>
+                        </div>
+
+                        <!-- System info -->
+                        <div class="pt-2">
+                            <div class="bg-gray-950 border border-gray-800 rounded-2xl p-4">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Estado</p>
+                                        <p class="text-xs text-gray-500 mt-1">Armazenamento Local: <span id="storage-usage" class="text-gray-300">...</span></p>
+                                    </div>
+                                    <span class="text-[10px] font-bold px-2 py-1 rounded-lg border border-emerald-500/20 bg-emerald-500/10 text-emerald-300">OK</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-gradient-to-br from-red-900/10 to-red-900/5 border border-red-900/20 rounded-3xl p-6 flex items-center justify-between">
+                    <div>
+                        <p class="text-red-400 font-bold">Zona de Perigo</p>
+                        <p class="text-xs text-red-400/60 mt-1">Limpar todos os dados locais e reiniciar.</p>
+                    </div>
+                    <button onclick="if(confirm('Resetar tudo?')) { localStorage.clear(); window.location.reload(); }" class="px-4 py-2 border border-red-500/30 text-red-400 hover:bg-red-500/10 rounded-xl text-xs font-bold transition-colors">Resetar Sistema</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Log Panel -->
+        <div id="log-panel" class="absolute bottom-0 left-0 right-0 bg-gray-950/95 backdrop-blur border-t border-gray-800 transform translate-y-full transition-transform duration-300 h-64 flex flex-col z-50 shadow-2xl">
+            <div class="flex items-center justify-between px-4 py-2 bg-gray-900 border-b border-gray-800 cursor-pointer hover:bg-gray-800 transition-colors" onclick="toggleLogs()">
+                <div class="flex items-center gap-2">
+                    <i class="fas fa-terminal text-green-500 text-xs"></i>
+                    <span class="text-[10px] font-mono text-gray-300 font-bold">SYSTEM LOGS</span>
+                </div>
+                <div class="flex items-center gap-3">
+                    <button onclick="event.stopPropagation(); logger.clear()" class="text-[10px] text-gray-500 hover:text-white px-2 py-1 rounded hover:bg-gray-800">Limpar</button>
+                    <i class="fas fa-chevron-down text-gray-500 text-xs"></i>
+                </div>
+            </div>
+            <div id="log-container" class="flex-1 overflow-y-auto p-4 font-mono text-[10px] space-y-1 log-terminal bg-gray-950"></div>
+        </div>
+    </main>
+
+    <!-- Modal: Generic Add Profile -->
+    <div id="modal-add-profile" class="fixed inset-0 z-50 hidden bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onclick="if(event.target===this) profilesManager.closeModal()">
+        <div class="bg-gray-900 border border-gray-800 rounded-3xl shadow-2xl w-full max-w-md animate-fade-in overflow-hidden">
+            <div class="p-6 border-b border-gray-800 flex justify-between items-center bg-gray-900/50">
+                <h3 class="text-lg font-bold text-white">Novo Perfil</h3>
+                <button onclick="profilesManager.closeModal()" class="w-8 h-8 rounded-full bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white flex items-center justify-center transition-colors"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="p-6">
+                <p class="text-sm text-gray-400 mb-4">Insira o Access Token do usuário ou sistema.</p>
+                <textarea id="input-token" rows="4" class="w-full bg-gray-950 border border-gray-800 rounded-2xl p-4 text-white text-xs font-mono focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none resize-none placeholder-gray-700 transition-all" placeholder="EAAB..."></textarea>
+                <div class="mt-4 flex items-center gap-2 text-[10px] text-yellow-500 bg-yellow-500/10 p-3 rounded-xl border border-yellow-500/20">
+                    <i class="fas fa-shield-alt"></i> Permissões necessárias: ads_management, ads_read.
+                </div>
+            </div>
+            <div class="p-6 border-t border-gray-800 bg-gray-900/50 flex gap-3">
+                <button onclick="profilesManager.closeModal()" class="flex-1 px-4 py-3 rounded-xl bg-gray-800 hover:bg-gray-700 text-white text-sm font-semibold transition-colors">Cancelar</button>
+                <button id="btn-add-token" onclick="profilesManager.handleTokenSubmit()" class="flex-1 px-4 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold transition-colors shadow-lg shadow-blue-900/20">Conectar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Select Account -->
+    <div id="modal-select-account" class="fixed inset-0 z-50 hidden bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onclick="if(event.target===this) adsManager.closeAccountModal()">
+        <div class="bg-gray-900 border border-gray-800 rounded-3xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col animate-fade-in overflow-hidden">
+            <div class="p-6 border-b border-gray-800 flex justify-between items-center shrink-0 bg-gray-900/50">
+                <h3 class="text-lg font-bold text-white">Selecionar Conta</h3>
+                <button onclick="adsManager.closeAccountModal()" class="w-8 h-8 rounded-full bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white flex items-center justify-center transition-colors"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="p-4 border-b border-gray-800 shrink-0 bg-gray-900/30">
+                <div class="relative">
+                    <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-500"></i>
+                    <input type="text" oninput="adsManager.filterAccounts(this.value)" placeholder="Buscar conta..." class="w-full bg-gray-950 border border-gray-800 rounded-xl pl-10 pr-4 py-3 text-sm text-white focus:border-blue-500 outline-none transition-all">
+                </div>
+            </div>
+            <div class="flex-1 overflow-y-auto p-4 custom-scrollbar" id="accounts-list-container"></div>
+            <div class="p-4 border-t border-gray-800 shrink-0 bg-gray-900/50 flex justify-between">
+                <button onclick="adsManager.syncAccounts()" class="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white text-xs font-bold rounded-xl flex items-center gap-2 transition-colors"><i class="fas fa-sync"></i> Sincronizar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Drawer: Edit Object (Campaign/AdSet/Ad) -->
+    <div id="edit-drawer" class="absolute inset-y-0 right-0 w-full sm:w-[420px] bg-gray-950/90 backdrop-blur-xl border-l border-gray-800 shadow-2xl transform translate-x-full transition-transform duration-300 z-40 flex flex-col">
+        <div class="p-6 border-b border-gray-800 flex justify-between items-center bg-gray-950/40">
+            <div>
+                <h3 id="edit-drawer-title" class="text-lg font-bold text-white">Editar</h3>
+                <p class="text-xs text-gray-500" id="edit-drawer-subtitle">ID: —</p>
+            </div>
+            <button onclick="adsManager.closeEditDrawer()" class="w-9 h-9 rounded-full bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white flex items-center justify-center transition-colors">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-6">
+            <div>
+                <label class="block text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Nome</label>
+                <input type="text" id="edit-name" class="w-full bg-gray-950 border border-gray-800 rounded-2xl px-4 py-3 text-sm text-white focus:border-blue-500 outline-none">
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Status</label>
+                <select id="edit-status" class="w-full bg-gray-950 border border-gray-800 rounded-2xl px-4 py-3 text-sm text-white focus:border-blue-500 outline-none">
+                    <option value="ACTIVE">ATIVO</option>
+                    <option value="PAUSED">PAUSADO</option>
+                    <option value="ARCHIVED">ARQUIVADO</option>
+                </select>
+            </div>
+            <div id="edit-budget-group" class="hidden">
+                <label class="block text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Orçamento</label>
+                <div class="relative">
+                    <span class="absolute left-4 top-1/2 -translate-y-1/2 text-xs text-gray-500">R$</span>
+                    <input type="number" id="edit-budget" step="0.01" class="w-full bg-gray-950 border border-gray-800 rounded-2xl pl-10 pr-4 py-3 text-sm text-white focus:border-blue-500 outline-none">
+                </div>
+                <p class="mt-2 text-[10px] text-gray-500">O valor será convertido para centavos automaticamente.</p>
+            </div>
+
+            <div id="edit-ad-preview-group" class="hidden">
+                <label class="block text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Preview do Anúncio</label>
+                <div class="bg-gray-950 border border-gray-800 rounded-2xl p-4">
+                    <p class="text-xs text-gray-500 mb-3">Abra o preview gerado pela Meta (quando disponível).</p>
+                    <div class="flex gap-2">
+                        <a id="edit-ad-preview-link" href="#" target="_blank" rel="noopener" class="px-3 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-xl transition-colors inline-flex items-center gap-2">
+                            <i class="fas fa-external-link-alt"></i> Abrir
+                        </a>
+                        <button id="edit-ad-preview-copy" type="button" class="px-3 py-2 bg-gray-800 hover:bg-gray-700 text-white text-xs font-bold rounded-xl transition-colors inline-flex items-center gap-2">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="p-6 border-t border-gray-800 bg-gray-950/40 flex gap-3">
+            <button onclick="adsManager.closeEditDrawer()" class="flex-1 px-4 py-3 rounded-xl bg-gray-800 hover:bg-gray-700 text-white text-sm font-bold transition-colors">Cancelar</button>
+            <button onclick="adsManager.saveChanges()" class="flex-1 px-4 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold transition-colors shadow-lg shadow-blue-900/20">Salvar</button>
+        </div>
+    </div>
+
+    <!-- Modal: Columns -->
+    <div id="modal-columns" class="fixed inset-0 z-50 hidden bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onclick="if(event.target===this) adsManager.closeColumnsModal()">
+        <div class="bg-gray-900 border border-gray-800 rounded-3xl shadow-2xl w-full max-w-4xl flex flex-col animate-fade-in overflow-hidden columns-modal-shell" style="height:90vh; max-height:90vh;">
+            <div class="p-6 border-b border-gray-800 flex justify-between items-center bg-gray-900/50 shrink-0">
+                <div>
+                    <h3 class="text-lg font-bold text-white">Personalizar Colunas</h3>
+                    <p class="text-xs text-gray-500">Selecione colunas e crie métricas personalizadas</p>
+                </div>
+                <button onclick="adsManager.closeColumnsModal()" class="w-8 h-8 rounded-full bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white flex items-center justify-center transition-colors"><i class="fas fa-times"></i></button>
+            </div>
+
+            <div class="p-4 border-b border-gray-800 bg-gray-900/30 shrink-0">
+                <div class="relative">
+                    <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-500"></i>
+                    <input id="columns-search" type="text" oninput="adsManager.filterColumns(this.value)" placeholder="Buscar colunas (ex: spend, cpc, ctr, IC...)" class="w-full bg-gray-950 border border-gray-800 rounded-xl pl-10 pr-4 py-3 text-sm text-white focus:border-blue-500 outline-none transition-all">
+                </div>
+            </div>
+
+            <div class="flex-1 min-h-0 overflow-hidden columns-modal-content">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 p-6 min-h-0 h-full">
+
+                    <!-- Available -->
+                    <section class="min-h-0 flex flex-col" aria-label="Colunas disponíveis">
+                        <div class="flex items-center justify-between mb-3 shrink-0">
+                            <h4 class="text-sm font-bold text-white">Disponíveis</h4>
+                            <button onclick="adsManager.resetColumnsToDefault()" class="text-xs text-gray-400 hover:text-white">Resetar padrão</button>
+                        </div>
+                        <div id="columns-available" class="space-y-2 flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-1 columns-scroll"></div>
+                    </section>
+
+                    <!-- Selected -->
+                    <section class="min-h-0 flex flex-col" aria-label="Colunas selecionadas">
+                        <div class="flex items-center justify-between mb-3 shrink-0">
+                            <h4 class="text-sm font-bold text-white">Selecionadas</h4>
+                            <span class="text-xs text-gray-500" id="columns-selected-count">0</span>
+                        </div>
+
+                        <div class="flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-1 space-y-4 columns-scroll">
+                            <div id="columns-selected" class="space-y-2"></div>
+
+                            <div class="p-4 bg-gray-950 border border-gray-800 rounded-2xl">
+                                <div class="flex items-center justify-between mb-3">
+                                    <h4 class="text-sm font-bold text-white">Coluna Personalizada</h4>
+                                    <span class="columns-chip">beta</span>
+                                </div>
+                                <div class="space-y-3">
+                                    <div>
+                                        <label class="block text-xs text-gray-400 mb-1">Nome</label>
+                                        <input id="custom-col-name" type="text" class="w-full bg-gray-900 border border-gray-800 rounded-xl px-3 py-2 text-sm text-white outline-none focus:border-blue-500" placeholder="Ex: CPA (Compra)">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs text-gray-400 mb-1">Fórmula (JS)</label>
+                                        <input id="custom-col-formula" type="text" class="w-full bg-gray-900 border border-gray-800 rounded-xl px-3 py-2 text-sm text-white outline-none focus:border-blue-500" placeholder="Ex: spend / (actions.purchase || 0)">
+                                        <p class="mt-2 text-[10px] text-gray-500">Variáveis: spend, clicks, impressions, ctr, cpc, cpm, reach, frequency, actions(map), cost_per_action_type(map)</p>
+                                    </div>
+                                    <button onclick="adsManager.addCustomColumnFromModal()" class="w-full columns-btn columns-btn-primary justify-center">Adicionar Coluna</button>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                </div>
+            </div>
+
+            <div class="p-6 border-t border-gray-800 bg-gray-900/50 flex gap-3 shrink-0">
+                <button onclick="adsManager.closeColumnsModal()" class="flex-1 columns-btn justify-center">Cancelar</button>
+                <button onclick="adsManager.applyColumnsFromModal()" class="flex-1 columns-btn columns-btn-primary justify-center">Aplicar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Bulk Editor -->
+    <div id="modal-bulk-editor" class="fixed inset-0 z-50 hidden bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onclick="if(event.target===this) adsManager.closeBulkEditor()">
+        <div class="bg-gray-900 border border-gray-800 rounded-3xl shadow-2xl w-full max-w-6xl max-h-[90vh] flex flex-col animate-fade-in overflow-hidden">
+            <div class="p-6 border-b border-gray-800 flex justify-between items-center bg-gray-900/50 shrink-0">
+                <div>
+                    <h3 class="text-lg font-bold text-white">Edição em Massa</h3>
+                    <p class="text-xs text-gray-500">Revise item a item ou aplique alterações em lote</p>
+                </div>
+                <button onclick="adsManager.closeBulkEditor()" class="w-8 h-8 rounded-full bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white flex items-center justify-center transition-colors"><i class="fas fa-times"></i></button>
+            </div>
+
+            <div class="flex-1 min-h-0 overflow-hidden flex flex-col lg:flex-row">
+                <!-- Left: List -->
+                <div class="w-full lg:w-[420px] border-r border-gray-800 min-h-0 flex flex-col">
+                    <div class="p-4 border-b border-gray-800 bg-gray-900/30 shrink-0 space-y-3">
+                        <div class="relative">
+                            <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-500"></i>
+                            <input id="bulk-filter-q" type="text" oninput="adsManager.renderBulkEditor()" placeholder="Buscar por nome/ID..." class="w-full bg-gray-950 border border-gray-800 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white focus:border-blue-500 outline-none">
+                        </div>
+                        <div class="flex gap-2">
+                            <select id="bulk-filter-status" onchange="adsManager.renderBulkEditor()" class="flex-1 bg-gray-950 border border-gray-800 rounded-xl px-3 py-2 text-xs text-white">
+                                <option value="">Status (todos)</option>
+                                <option value="ACTIVE">ATIVO</option>
+                                <option value="PAUSED">PAUSADO</option>
+                                <option value="ARCHIVED">ARQUIVADO</option>
+                            </select>
+                            <label class="flex items-center gap-2 text-xs text-gray-400 px-3 py-2 bg-gray-950 border border-gray-800 rounded-xl">
+                                <input id="bulk-filter-changed" type="checkbox" onchange="adsManager.renderBulkEditor()" class="chk">
+                                Alterados
+                            </label>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="adsManager.bulkSelectVisible()" class="columns-btn" type="button">Selecionar exibidos</button>
+                            <button onclick="adsManager.bulkDeselectVisible()" class="columns-btn" type="button">Remover exibidos</button>
+                        </div>
+                    </div>
+                    <div id="bulk-editor-list" class="flex-1 min-h-0 overflow-y-auto custom-scrollbar p-4 space-y-3"></div>
+                </div>
+
+                <!-- Right: Apply to all + Preview -->
+                <div class="flex-1 min-h-0 overflow-y-auto custom-scrollbar p-6 space-y-6">
+                    <div class="bg-gray-950 border border-gray-800 rounded-2xl p-5">
+                        <div class="flex items-center justify-between mb-4">
+                            <h4 class="text-sm font-bold text-white">Aplicar para TODOS</h4>
+                            <select id="bulk-global-scope" onchange="adsManager.renderBulkEditor()" class="bg-gray-900 border border-gray-800 rounded-xl px-3 py-2 text-xs text-white">
+                                <option value="all">Todos selecionados</option>
+                                <option value="active">Somente ATIVOS</option>
+                                <option value="paused">Somente PAUSADOS</option>
+                                <option value="archived">Somente ARQUIVADOS</option>
+                                <option value="visible">Somente exibidos (filtro)</option>
+                            </select>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs text-gray-400 mb-1">Prefixo do nome</label>
+                                <input id="bulk-global-prefix" type="text" class="w-full bg-gray-900 border border-gray-800 rounded-xl px-3 py-2 text-sm text-white" placeholder="Ex: [TESTE] ">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-gray-400 mb-1">Sufixo do nome</label>
+                                <input id="bulk-global-suffix" type="text" class="w-full bg-gray-900 border border-gray-800 rounded-xl px-3 py-2 text-sm text-white" placeholder="Ex: - DUP">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-gray-400 mb-1">Status</label>
+                                <select id="bulk-global-status" class="w-full bg-gray-900 border border-gray-800 rounded-xl px-3 py-2 text-sm text-white">
+                                    <option value="">(não alterar)</option>
+                                    <option value="ACTIVE">ATIVO</option>
+                                    <option value="PAUSED">PAUSADO</option>
+                                    <option value="ARCHIVED">ARQUIVADO</option>
+                                </select>
+                            </div>
+                            <div id="bulk-global-budget-group" class="hidden">
+                                <label class="block text-xs text-gray-400 mb-1">Orçamento</label>
+                                <input id="bulk-global-budget" type="number" step="0.01" class="w-full bg-gray-900 border border-gray-800 rounded-xl px-3 py-2 text-sm text-white" placeholder="0.00">
+                            </div>
+                        </div>
+                        <div class="mt-4 flex gap-2">
+                            <button onclick="adsManager.bulkApplyGlobal()" class="columns-btn columns-btn-primary" type="button">Aplicar Agora</button>
+                            <button onclick="adsManager.bulkClearAllUpdates()" class="columns-btn columns-btn-danger" type="button">Limpar alterações</button>
+                        </div>
+                    </div>
+
+                    <div class="bg-gray-950 border border-gray-800 rounded-2xl p-5">
+                        <div class="flex items-center justify-between mb-3">
+                            <h4 class="text-sm font-bold text-white">Pré-visualização</h4>
+                            <span id="bulk-preview-summary" class="text-xs text-gray-400">—</span>
+                        </div>
+                        <div id="bulk-preview" class="text-xs text-gray-400 space-y-2"></div>
+                    </div>
+
+                    <div class="flex justify-end gap-3">
+                        <button onclick="adsManager.closeBulkEditor()" class="columns-btn" type="button">Fechar</button>
+                        <button onclick="adsManager.bulkSaveAll()" class="columns-btn columns-btn-primary" type="button">Salvar na Meta</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Page Details -->
+    <div id="modal-page-details" class="fixed inset-0 z-50 hidden bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onclick="if(event.target===this) pagesManager.closeDetails()">
+        <div class="bg-gray-900 border border-gray-800 rounded-3xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col animate-fade-in overflow-hidden">
+            <div class="p-6 border-b border-gray-800 flex justify-between items-center bg-gray-900/50 shrink-0">
+                <div class="min-w-0">
+                    <h3 id="page-details-title" class="text-lg font-bold text-white truncate">Página</h3>
+                    <p id="page-details-subtitle" class="text-xs text-gray-500 truncate">ID: —</p>
+                </div>
+                <button onclick="pagesManager.closeDetails()" class="w-8 h-8 rounded-full bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white flex items-center justify-center transition-colors"><i class="fas fa-times"></i></button>
+            </div>
+            <div id="page-details-body" class="flex-1 overflow-y-auto custom-scrollbar p-6"></div>
+            <div class="p-4 border-t border-gray-800 bg-gray-900/40 flex justify-end shrink-0">
+                <button onclick="pagesManager.closeDetails()" class="columns-btn">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts (Updated Versions) -->
+    <script src="js/facebook-api.js?v=20260129"></script>
+    <script src="js/profiles.js?v=20260129"></script>
+    <script src="js/ads-manager.js?v=20260129.1"></script>
+    <script src="js/rules-manager.js?v=20260129"></script>
+    <script src="js/pages-manager.js?v=20260129.53"></script>
+    <script src="js/app.js?v=20260129"></script>
+
+    <!-- Modals that are injected/controlled by specific JS managers are kept in the HTML structure to ensure ID availability -->
+    
+    <!-- Modal: Edit Token -->
+    <div id="modal-edit-token" class="fixed inset-0 z-50 hidden bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onclick="if(event.target===this) profilesManager.closeTokenModal()">
+        <div class="bg-gray-900 border border-gray-800 rounded-3xl shadow-2xl w-full max-w-xl animate-fade-in overflow-hidden">
+            <div class="p-6 border-b border-gray-800 flex justify-between items-center bg-gray-900/50">
+                <div>
+                    <h3 class="text-lg font-bold text-white">Gerenciar Token</h3>
+                    <p class="text-xs text-gray-500" id="edit-token-subtitle">...</p>
+                </div>
+                <button onclick="profilesManager.closeTokenModal()" class="w-8 h-8 rounded-full bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white flex items-center justify-center transition-colors"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="p-6 space-y-4">
+                <div class="bg-gray-950 border border-gray-800 rounded-2xl p-4 flex justify-between items-center">
+                    <div class="min-w-0">
+                        <p class="text-xs text-gray-500 mb-1">Token Atual</p>
+                        <p class="text-xs font-mono text-white truncate" id="edit-token-current">...</p>
+                    </div>
+                    <button onclick="profilesManager.copyCurrentTokenFromModal()" class="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-white text-xs rounded-lg transition-colors">Copiar</button>
+                </div>
+                <div>
+                    <label class="text-xs text-gray-400 ml-1">Substituir Token</label>
+                    <textarea id="edit-token-input" rows="3" class="mt-1 w-full bg-gray-950 border border-gray-800 rounded-2xl p-3 text-white text-xs font-mono focus:border-blue-500 outline-none resize-none"></textarea>
+                </div>
+                <div id="edit-token-status" class="hidden p-3 rounded-xl text-xs"></div>
+            </div>
+            <div class="p-6 border-t border-gray-800 flex gap-3 bg-gray-900/50">
+                <button onclick="profilesManager.closeTokenModal()" class="flex-1 px-4 py-3 bg-gray-800 hover:bg-gray-700 text-white rounded-xl text-sm font-bold transition-colors">Cancelar</button>
+                <button id="btn-save-token" onclick="profilesManager.saveTokenFromModal()" class="flex-1 px-4 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-sm font-bold transition-colors">Salvar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Rule Editor -->
+    <div id="modal-rule-editor" class="fixed inset-0 z-50 hidden bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onclick="if(event.target===this) rulesManager.closeEditor()">
+        <div class="bg-gray-900 border border-gray-800 rounded-3xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col animate-fade-in overflow-hidden">
+            <div class="p-6 border-b border-gray-800 flex justify-between items-center shrink-0 bg-gray-900/50">
+                <h3 class="text-lg font-bold text-white">Editor de Regras</h3>
+                <button onclick="rulesManager.closeEditor()" class="w-8 h-8 rounded-full bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white flex items-center justify-center transition-colors"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="flex-1 overflow-hidden flex flex-col lg:flex-row">
+                <!-- Left: Settings -->
+                <div class="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-6 border-r border-gray-800">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Nome da Regra</label>
+                        <input type="text" id="rule-name" class="w-full bg-gray-950 border border-gray-800 rounded-xl px-4 py-3 text-sm text-white focus:border-purple-500 outline-none transition-colors" placeholder="Ex: Pausar se CPA alto">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Lógica</label>
+                        <div class="flex gap-2 mb-3">
+                            <select id="rule-logic" class="bg-gray-950 border border-gray-800 rounded-xl px-3 py-2 text-sm text-white focus:border-purple-500 outline-none">
+                                <option value="AND">E (Todas)</option>
+                                <option value="OR">OU (Qualquer)</option>
+                            </select>
+                            <span class="text-sm text-gray-500 py-2">condições forem verdadeiras</span>
+                        </div>
+                        <div id="rule-conditions-container" class="space-y-2"></div>
+                        <button onclick="rulesManager.addConditionRow()" class="mt-2 w-full py-2 border border-dashed border-gray-700 hover:border-gray-500 text-gray-500 hover:text-white rounded-xl text-xs font-bold transition-colors uppercase tracking-wide">+ Adicionar Condição</button>
+                    </div>
+
+                    <!-- Período + Agendamento -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Período (Insights)</label>
+                            <select id="rule-date-preset" class="w-full bg-gray-950 border border-gray-800 rounded-xl px-4 py-3 text-sm text-white focus:border-purple-500 outline-none transition-colors">
+                                <option value="today">Hoje</option>
+                                <option value="yesterday">Ontem</option>
+                                <option value="last_7d">Últimos 7 dias</option>
+                                <option value="last_30d">Últimos 30 dias</option>
+                            </select>
+                            <p class="mt-2 text-[10px] text-gray-500">Define o período usado para calcular as métricas das condições.</p>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Agendamento</label>
+                            <select id="rule-schedule-mode" onchange="rulesManager.onScheduleModeChange()" class="w-full bg-gray-950 border border-gray-800 rounded-xl px-4 py-3 text-sm text-white focus:border-purple-500 outline-none transition-colors">
+                                <option value="ALWAYS">Sempre (enquanto o painel estiver aberto)</option>
+                                <option value="AT">Somente no horário</option>
+                                <option value="WINDOW">Entre horários</option>
+                            </select>
+                            <p class="mt-2 text-[10px] text-gray-500">O agendamento roda em background somente enquanto este painel estiver aberto.</p>
+                        </div>
+                    </div>
+
+                    <div id="rule-schedule-always-group" class="bg-gray-950 border border-gray-800 rounded-2xl p-4">
+                        <div class="flex items-center justify-between gap-3">
+                            <div>
+                                <p class="text-xs font-bold text-gray-300">Verificar automaticamente</p>
+                                <p class="text-[10px] text-gray-500">O sistema avaliará as condições periodicamente.</p>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs text-gray-500">A cada</span>
+                                <select id="rule-schedule-interval" class="bg-gray-900 border border-gray-800 rounded-xl px-3 py-2 text-xs text-white">
+                                    <option value="1">1 min</option>
+                                    <option value="5" selected>5 min</option>
+                                    <option value="10">10 min</option>
+                                    <option value="15">15 min</option>
+                                    <option value="30">30 min</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="rule-schedule-at-group" class="hidden bg-gray-950 border border-gray-800 rounded-2xl p-4">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div>
+                                <p class="text-xs font-bold text-gray-300">Executar no horário</p>
+                                <p class="text-[10px] text-gray-500">A regra será avaliada e executada 1x por dia no horário definido.</p>
+                            </div>
+                            <input id="rule-schedule-at" type="time" class="bg-gray-900 border border-gray-800 rounded-xl px-3 py-2 text-xs text-white">
+                        </div>
+                    </div>
+
+                    <div id="rule-schedule-window-group" class="hidden bg-gray-950 border border-gray-800 rounded-2xl p-4">
+                        <div class="flex flex-col gap-3">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-xs font-bold text-gray-300">Executar entre horários</p>
+                                    <p class="text-[10px] text-gray-500">Dentro da janela, o sistema verifica periodicamente e aplica ações quando bater as condições.</p>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-xs text-gray-500">A cada</span>
+                                    <select id="rule-schedule-window-interval" class="bg-gray-900 border border-gray-800 rounded-xl px-3 py-2 text-xs text-white">
+                                        <option value="1">1 min</option>
+                                        <option value="5" selected>5 min</option>
+                                        <option value="10">10 min</option>
+                                        <option value="15">15 min</option>
+                                        <option value="30">30 min</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Início</label>
+                                    <input id="rule-schedule-start" type="time" class="w-full bg-gray-900 border border-gray-800 rounded-xl px-3 py-2 text-xs text-white">
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Fim</label>
+                                    <input id="rule-schedule-end" type="time" class="w-full bg-gray-900 border border-gray-800 rounded-xl px-3 py-2 text-xs text-white">
+                                </div>
+                            </div>
+                            <p class="text-[10px] text-gray-500">Dica: se o horário de fim for menor que o de início, o sistema considera janela atravessando a meia-noite.</p>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Ação</label>
+                        <select id="rule-action" class="w-full bg-gray-950 border border-gray-800 rounded-xl px-4 py-3 text-sm text-white focus:border-purple-500 outline-none transition-colors">
+                            <option value="PAUSE">PAUSAR Campanha</option>
+                            <option value="ACTIVATE">ATIVAR Campanha</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Aplicar em campanhas</label>
+                        <select id="rule-campaign-scope" class="w-full bg-gray-950 border border-gray-800 rounded-xl px-4 py-3 text-sm text-white focus:border-purple-500 outline-none transition-colors">
+                            <option value="ALL">Todas</option>
+                            <option value="ACTIVE">Somente ATIVAS</option>
+                            <option value="PAUSED">Somente PAUSADAS</option>
+                        </select>
+                        <p class="mt-2 text-[10px] text-gray-500">O filtro é aplicado antes de avaliar as condições (ex.: avaliar apenas campanhas ATIVAS).</p>
+                    </div>
+                </div>
+                <!-- Right: Accounts -->
+                <div class="w-full lg:w-80 bg-gray-900/30 flex flex-col border-t lg:border-t-0">
+                    <div class="p-4 border-b border-gray-800 bg-gray-900/50">
+                        <label class="text-xs font-bold text-gray-400 uppercase tracking-wide">Aplicar em</label>
+                        <input id="rule-accounts-search" type="text" oninput="rulesManager.filterAccountsInEditor(this.value)" placeholder="Filtrar contas..." class="mt-2 w-full bg-gray-950 border border-gray-800 rounded-lg px-3 py-2 text-xs text-white focus:border-purple-500 outline-none">
+                    </div>
+                    <div class="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-1" id="rule-accounts-list"></div>
+                </div>
+            </div>
+            <div class="p-6 border-t border-gray-800 bg-gray-900/50 flex justify-end gap-3 shrink-0">
+                <button onclick="rulesManager.closeEditor()" class="px-6 py-3 bg-gray-800 hover:bg-gray-700 text-white font-bold rounded-xl transition-colors">Cancelar</button>
+                <button onclick="rulesManager.saveFromEditor()" class="px-6 py-3 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-xl shadow-lg shadow-purple-900/20 transition-colors">Salvar Regra</button>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>
