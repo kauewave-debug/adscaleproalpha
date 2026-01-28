@@ -1,7 +1,7 @@
 /**
  * Rules Manager Module
- * Handles automated rules creation and execution
- * Version: 3.4 - Metrics synced with Ads columns + campaign scope + date preset + scheduler (while app open)
+ * Automated rules creation + scheduler (while app open)
+ * Version: 3.6 - Synced with Ads Manager columns + metric badges/tooltips in editor
  */
 var rulesManager = {
     rules: [],
@@ -30,7 +30,7 @@ var rulesManager = {
         this.renderRulesList();
         this._syncSchedulerUI();
         this._startScheduler();
-        if (window.logger) window.logger.info('Rules Manager initialized (v3.4)');
+        if (window.logger) window.logger.info('Rules Manager initialized (v3.5)');
     },
 
     loadRules: function() {
@@ -59,6 +59,9 @@ var rulesManager = {
         this._syncSchedulerUI();
     },
 
+    // ==================
+    // Scheduler Pause (Global)
+    // ==================
     _loadSchedulerPaused: function() {
         try {
             var raw = localStorage.getItem(this._schedulerPausedKey);
@@ -109,34 +112,301 @@ var rulesManager = {
     },
 
     // =====================
-    // Metric catalog (synced)
+    // Metrics: 100% synced with Ads Manager
     // =====================
+    _ensureAdsColumnsLoaded: function() {
+        try {
+            if (window.adsManager && typeof window.adsManager._initColumns === 'function') {
+                // columnsCatalog is created in _initColumns, which is called inside adsManager.init
+                if (!window.adsManager.columnsCatalog || !window.adsManager.columnsCatalog.length) {
+                    window.adsManager._initColumns();
+                }
+                // customColumns and selectedColumnKeys also loaded by _initColumns
+                if (!window.adsManager.customColumns) window.adsManager.customColumns = [];
+            }
+        } catch (e) {}
+    },
+
+    _adsColumnsSnapshot: function() {
+        this._ensureAdsColumnsLoaded();
+
+        var base = (window.adsManager && window.adsManager.columnsCatalog) ? window.adsManager.columnsCatalog : [];
+        var custom = (window.adsManager && window.adsManager.customColumns) ? window.adsManager.customColumns : [];
+
+        // Fallback if user never opened Ads Manager and adsManager is not initialized for some reason
+        if ((!base || !base.length) && !custom.length) {
+            try {
+                var stored = JSON.parse(localStorage.getItem('ads_columns_v1') || 'null');
+                custom = (stored && stored.customColumns) ? stored.customColumns : [];
+            } catch (e2) {}
+        }
+
+        return { base: base || [], custom: custom || [] };
+    },
+
+    _isComparableFormat: function(fmt) {
+        fmt = String(fmt || '');
+        // adsManager formats
+        if (fmt === 'currency' || fmt === 'currency_budget') return true;
+        if (fmt === 'number' || fmt === 'number2') return true;
+        if (fmt === 'percent2') return true;
+        return false;
+    },
+
+    _rulesFormatFromAdsFormat: function(fmt) {
+        fmt = String(fmt || '');
+        if (fmt === 'currency' || fmt === 'currency_budget') return 'currency';
+        if (fmt === 'percent2') return 'percent';
+        if (fmt === 'number2') return 'number2';
+        return 'number';
+    },
+
+    _metricSourceBadge: function(def) {
+        // Returns { label, cls, tip }
+        try {
+            if (!def) return { label: 'MÉTRICA', cls: 'bg-gray-800 text-gray-300 border-gray-700', tip: 'Métrica' };
+
+            // Custom columns in adsManager are stored as {key:'custom:..', source:'custom', formula:'...'}
+            if (String(def.key || '').indexOf('custom:') === 0 || def.source === 'custom') {
+                return {
+                    label: 'CUSTOM',
+                    cls: 'bg-blue-500/10 text-blue-300 border-blue-500/20',
+                    tip: 'Coluna personalizada (fórmula do Ads Manager)'
+                };
+            }
+
+            if (def.source === 'derived') {
+                return {
+                    label: 'DERIVED',
+                    cls: 'bg-purple-500/10 text-purple-300 border-purple-500/20',
+                    tip: 'Calculada (mesma lógica do Ads Manager)'
+                };
+            }
+
+            if (def.source === 'insight') {
+                return {
+                    label: 'INSIGHT',
+                    cls: 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20',
+                    tip: 'Campo nativo do Insights'
+                };
+            }
+
+            if (def.source === 'object') {
+                return {
+                    label: 'OBJ',
+                    cls: 'bg-amber-500/10 text-amber-200 border-amber-500/20',
+                    tip: 'Campo do objeto (campanha)'
+                };
+            }
+
+            return { label: 'MÉTRICA', cls: 'bg-gray-800 text-gray-300 border-gray-700', tip: 'Métrica' };
+        } catch (e) {
+            return { label: 'MÉTRICA', cls: 'bg-gray-800 text-gray-300 border-gray-700', tip: 'Métrica' };
+        }
+    },
+
+    _metricTooltip: function(def) {
+        if (!def) return '';
+        if (def.source === 'insight') {
+            return 'Insights field: ' + (def.field || def.key || '');
+        }
+        if (def.source === 'derived') {
+            return 'Derived: ' + (def.derived || def.key || '') + (def.requiredFields && def.requiredFields.length ? (' | requires: ' + def.requiredFields.join(',')) : '');
+        }
+        if (def.source === 'custom') {
+            return 'Formula: ' + (def.formula || '');
+        }
+        if (def.source === 'object') {
+            return 'Object field: ' + (def.key || '');
+        }
+        return String(def.key || '');
+    },
+
     getMetricCatalog: function() {
-        // Keep aligned with adsManager columns (campaign-level insights)
-        return [
-            { key: 'spend', label: 'Gasto', format: 'currency', unitLabel: 'Moeda da conta' },
-            { key: 'cpr', label: 'Custo por Resultado', format: 'currency', unitLabel: 'Moeda da conta' },
-            { key: 'cpc', label: 'CPC', format: 'currency', unitLabel: 'Moeda da conta' },
-            { key: 'cpm', label: 'CPM', format: 'currency', unitLabel: 'Moeda da conta' },
-            { key: 'ctr', label: 'CTR', format: 'percent', unitLabel: '%' },
-            { key: 'ic', label: 'IC (Finalizações de compra iniciadas)', format: 'number', unitLabel: 'Quantidade' },
-            { key: 'results', label: 'Resultados', format: 'number', unitLabel: 'Quantidade' },
-            { key: 'clicks', label: 'Cliques', format: 'number', unitLabel: 'Quantidade' },
-            { key: 'impressions', label: 'Impressões', format: 'number', unitLabel: 'Quantidade' },
-            { key: 'reach', label: 'Alcance', format: 'number', unitLabel: 'Quantidade' },
-            { key: 'frequency', label: 'Frequência', format: 'number2', unitLabel: 'Média' }
-        ];
+        // Dynamic catalog from Ads Manager (base + custom), filtered to comparable metrics
+        var snap = this._adsColumnsSnapshot();
+        var base = snap.base;
+        var custom = snap.custom;
+
+        var out = [];
+
+        // Add built-ins
+        for (var i = 0; i < base.length; i++) {
+            var c = base[i];
+            if (!c || !c.key) continue;
+            if (!this._isComparableFormat(c.format)) continue;
+
+            // Avoid status/date/text columns
+            if (c.source === 'object') {
+                // Allow budgets only
+                if (c.key !== 'daily_budget' && c.key !== 'lifetime_budget') continue;
+            }
+
+            out.push({
+                key: c.key,
+                label: c.label,
+                format: this._rulesFormatFromAdsFormat(c.format),
+                unitLabel: (this._rulesFormatFromAdsFormat(c.format) === 'currency') ? 'Moeda da conta' : (this._rulesFormatFromAdsFormat(c.format) === 'percent' ? '%' : 'Quantidade')
+            });
+        }
+
+        // Add custom columns (always comparable: treat as number2)
+        for (var j = 0; j < custom.length; j++) {
+            var cc = custom[j];
+            if (!cc || !cc.key || String(cc.key).indexOf('custom:') !== 0) continue;
+            // custom columns in adsManager are format number2 by default
+            out.push({
+                key: cc.key,
+                label: cc.label || cc.key,
+                format: this._rulesFormatFromAdsFormat(cc.format || 'number2'),
+                unitLabel: 'Calculado'
+            });
+        }
+
+        // Stable ordering: show common metrics first if present
+        var order = ['spend','results','cpr','ic','cpc','cpm','ctr','clicks','impressions','reach','frequency','daily_budget','lifetime_budget'];
+        out.sort(function(a, b) {
+            var ai = order.indexOf(a.key);
+            var bi = order.indexOf(b.key);
+            if (ai === -1) ai = 9999;
+            if (bi === -1) bi = 9999;
+            if (ai !== bi) return ai - bi;
+            return String(a.label).localeCompare(String(b.label));
+        });
+
+        // Always ensure at least something
+        if (!out.length) {
+            out = [
+                { key: 'spend', label: 'Gasto', format: 'currency', unitLabel: 'Moeda da conta' },
+                { key: 'cpc', label: 'CPC', format: 'currency', unitLabel: 'Moeda da conta' },
+                { key: 'ctr', label: 'CTR', format: 'percent', unitLabel: '%' },
+                { key: 'clicks', label: 'Cliques', format: 'number', unitLabel: 'Quantidade' }
+            ];
+        }
+
+        return out;
     },
 
     _metricMeta: function(key) {
         key = String(key || '');
+        // Backward compatibility aliases
+        if (key === 'cost_per_result') key = 'cpr';
+
         var list = this.getMetricCatalog();
         for (var i = 0; i < list.length; i++) {
             if (list[i].key === key) return list[i];
         }
-        // Backward compatibility aliases
-        if (key === 'cost_per_result') return { key: 'cpr', label: 'Custo por Resultado', format: 'currency', unitLabel: 'Moeda da conta' };
         return { key: key, label: key, format: 'number', unitLabel: '' };
+    },
+
+    _getAdsColumnDef: function(metricKey) {
+        metricKey = String(metricKey || '');
+        if (metricKey === 'cost_per_result') metricKey = 'cpr';
+
+        this._ensureAdsColumnsLoaded();
+
+        // custom
+        if (metricKey.indexOf('custom:') === 0) {
+            var snap = this._adsColumnsSnapshot();
+            for (var j = 0; j < snap.custom.length; j++) {
+                if (String(snap.custom[j].key) === metricKey) return snap.custom[j];
+            }
+            return null;
+        }
+
+        // base
+        if (window.adsManager && window.adsManager.columnsCatalog) {
+            for (var i = 0; i < window.adsManager.columnsCatalog.length; i++) {
+                if (String(window.adsManager.columnsCatalog[i].key) === metricKey) return window.adsManager.columnsCatalog[i];
+            }
+        }
+        return null;
+    },
+
+    _metricValueFromAds: function(metricKey, campaignObj, insightsObj) {
+        metricKey = String(metricKey || '');
+        if (metricKey === 'cost_per_result') metricKey = 'cpr';
+
+        var def = this._getAdsColumnDef(metricKey);
+        var ins = insightsObj || {};
+        var camp = campaignObj || {};
+
+        // If we can use Ads Manager's own computation, do it.
+        try {
+            if (def) {
+                if (def.source === 'insight') {
+                    return parseFloat(ins[def.field] || 0) || 0;
+                }
+                if (def.source === 'derived') {
+                    if (window.adsManager && typeof window.adsManager._computeDerived === 'function') {
+                        var v = window.adsManager._computeDerived(def, camp, ins);
+                        return parseFloat(v || 0) || 0;
+                    }
+                }
+                if (def.source === 'custom') {
+                    if (window.adsManager && typeof window.adsManager._evalCustomColumn === 'function') {
+                        var v2 = window.adsManager._evalCustomColumn(def, camp, ins);
+                        return parseFloat(v2 || 0) || 0;
+                    }
+                }
+                if (def.source === 'object') {
+                    // budgets are cents
+                    if (def.key === 'daily_budget' || def.key === 'lifetime_budget') {
+                        var cents = parseFloat(camp[def.key] || 0) || 0;
+                        return cents / 100;
+                    }
+                    return parseFloat(camp[def.key] || 0) || 0;
+                }
+            }
+        } catch (e) {}
+
+        // Legacy fallback (should rarely happen)
+        if (metricKey === 'ic') return this._legacyGetIC(ins);
+        if (metricKey === 'cpr') return this._legacyGetCPR(ins);
+        if (metricKey === 'results') return this._legacyGetResults(ins);
+
+        return parseFloat(ins[metricKey] || 0) || 0;
+    },
+
+    _legacyActionsMap: function(arr) {
+        var m = {};
+        if (!arr) return m;
+        for (var i = 0; i < arr.length; i++) {
+            var it = arr[i];
+            if (!it || !it.action_type) continue;
+            m[it.action_type] = parseFloat(it.value || 0) || 0;
+        }
+        return m;
+    },
+
+    _legacyGetIC: function(ins) {
+        var acts = this._legacyActionsMap(ins.actions);
+        return (acts['initiate_checkout'] || 0) + (acts['omni_initiated_checkout'] || 0);
+    },
+
+    _legacyGetResults: function(ins) {
+        var acts = this._legacyActionsMap(ins.actions);
+        var order = [
+            ['purchase', 'omni_purchase'],
+            ['lead', 'omni_lead'],
+            ['initiate_checkout', 'omni_initiated_checkout'],
+            ['link_click']
+        ];
+        for (var i = 0; i < order.length; i++) {
+            var sum = 0;
+            for (var j = 0; j < order[i].length; j++) sum += (acts[order[i][j]] || 0);
+            if (sum > 0) return sum;
+        }
+        return 0;
+    },
+
+    _legacyGetCPR: function(ins) {
+        var costs = this._legacyActionsMap(ins.cost_per_action_type);
+        var order = ['purchase', 'omni_purchase', 'lead', 'omni_lead', 'initiate_checkout', 'omni_initiated_checkout', 'link_click'];
+        for (var i = 0; i < order.length; i++) {
+            if (costs[order[i]] !== undefined) return costs[order[i]];
+        }
+        return 0;
     },
 
     // ===========================
@@ -283,7 +553,6 @@ var rulesManager = {
     },
 
     _nextRunLabel: function(rule) {
-        // Only for UI. If scheduler paused, show paused.
         if (this.schedulerPaused) return 'Pausado';
         if (!rule || !rule.active) return '—';
         if (!rule.schedule) return '—';
@@ -304,7 +573,6 @@ var rulesManager = {
         var m = min % 60;
         if (h <= 24) return 'Em ~' + h + 'h' + (m ? (' ' + m + 'm') : '');
 
-        // long
         return next.toLocaleString('pt-BR');
     },
 
@@ -321,13 +589,10 @@ var rulesManager = {
                 var target = new Date(now);
                 target.setHours(parseInt(parts[0], 10), parseInt(parts[1], 10), 0, 0);
 
-                // if already ran today, set tomorrow
                 var todayKey = now.toISOString().slice(0, 10);
                 if (rule.meta && rule.meta.lastAtRunDate === todayKey) {
                     target.setDate(target.getDate() + 1);
                 } else if (target.getTime() <= now.getTime()) {
-                    // If past the time, and not ran yet, scheduler will execute on next tick; show "Agora"
-                    // but to avoid showing past, add small delta
                     target = new Date(now.getTime() + 30 * 1000);
                 }
                 return target;
@@ -341,7 +606,6 @@ var rulesManager = {
                 var iv = parseInt(sched.windowIntervalMin || sched.intervalMin || 5, 10);
                 if (!iv || iv < 1) iv = 5;
 
-                // If in window: next = lastAutoRunAt + interval, else next = next window start.
                 var stMin = this._timeToMin(st);
                 var enMin = this._timeToMin(en);
                 var curMin = now.getHours() * 60 + now.getMinutes();
@@ -356,37 +620,23 @@ var rulesManager = {
                     return new Date(last + iv * 60 * 1000);
                 }
 
-                // next window start
-                var nextStart = new Date(now);
-                nextStart.setSeconds(0, 0);
-                // Determine if next start is today or tomorrow
                 var startToday = new Date(now);
                 startToday.setHours(Math.floor(stMin / 60), stMin % 60, 0, 0);
 
                 if (stMin <= enMin) {
-                    // normal window
                     if (now.getTime() < startToday.getTime()) return startToday;
-                    // else tomorrow
                     startToday.setDate(startToday.getDate() + 1);
                     return startToday;
                 }
 
-                // crosses midnight: if current time is after end and before start, next start is today at start
-                // else next start is today (if before start) or tomorrow
-                // We simplify:
-                if (curMin < stMin && curMin > enMin) {
-                    return startToday;
-                }
-                // if already past today's start (cur>=stMin) then next start is tomorrow
+                if (curMin < stMin && curMin > enMin) return startToday;
                 if (curMin >= stMin) {
                     startToday.setDate(startToday.getDate() + 1);
                     return startToday;
                 }
-                // else before start and also <= end (after midnight segment) => next start is today
                 return startToday;
             }
 
-            // ALWAYS
             var intervalMin = parseInt(sched.intervalMin || 5, 10);
             if (!intervalMin || intervalMin < 1) intervalMin = 5;
             var last2 = (rule.meta && rule.meta.lastAutoRunAt) ? Date.parse(rule.meta.lastAutoRunAt) : 0;
@@ -520,19 +770,22 @@ var rulesManager = {
         var opts = '';
         for (var i = 0; i < metrics.length; i++) {
             var m = metrics[i];
-            opts += '<option value="' + m.key + '" data-format="' + m.format + '">' + this._esc(m.label) + '</option>';
+            opts += '<option value="' + this._esc(m.key) + '" data-format="' + this._esc(m.format) + '">' + this._esc(m.label) + '</option>';
         }
 
         div.innerHTML =
-            '<select class="condition-metric flex-1 bg-gray-950 border border-gray-800 rounded-xl px-3 py-2 text-xs text-white focus:border-purple-500 outline-none" onchange="rulesManager.onMetricChange(\'' + rowId + '\')">' +
+            '<div class="flex items-center gap-2 flex-1 min-w-0">' +
+            '  <select class="condition-metric flex-1 min-w-0 bg-gray-950 border border-gray-800 rounded-xl px-3 py-2 text-xs text-white focus:border-purple-500 outline-none" onchange="rulesManager.onMetricChange(\'' + rowId + '\')">' +
             opts +
-            '</select>' +
+            '  </select>' +
+            '  <span class="cond-badge inline-flex items-center px-2 py-1 rounded-lg border text-[10px] font-extrabold tracking-widest uppercase bg-gray-800 text-gray-300 border-gray-700" title="Origem da métrica">MÉTRICA</span>' +
+            '</div>' +
             '<select class="condition-operator w-28 bg-gray-950 border border-gray-800 rounded-xl px-2 py-2 text-xs text-white focus:border-purple-500 outline-none">' +
             '  <option value=">">Maior</option>' +
             '  <option value="<">Menor</option>' +
             '  <option value="=">Igual</option>' +
             '</select>' +
-            '<div class="relative w-40">' +
+            '<div class="relative w-44">' +
             '  <span class="cond-prefix hidden absolute left-3 top-1/2 -translate-y-1/2 text-[10px] text-gray-500" data-role="prefix">¤</span>' +
             '  <input type="number" step="0.01" class="condition-value w-full bg-gray-950 border border-gray-800 rounded-xl pl-7 pr-7 py-2 text-xs text-white focus:border-purple-500 outline-none" placeholder="Valor" />' +
             '  <span class="cond-suffix hidden absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-gray-500" data-role="suffix">%</span>' +
@@ -550,12 +803,22 @@ var rulesManager = {
         var valInput = row.querySelector('.condition-value');
         var prefix = row.querySelector('[data-role="prefix"]');
         var suffix = row.querySelector('[data-role="suffix"]');
+        var badge = row.querySelector('.cond-badge');
         if (!metricSel || !valInput) return;
 
+        var metricKey = metricSel.value;
         var opt = metricSel.options[metricSel.selectedIndex];
         var fmt = opt ? opt.getAttribute('data-format') : 'number';
 
-        // Reset
+        // Update badge + tooltip from Ads Manager def
+        var def = this._getAdsColumnDef(metricKey);
+        var b = this._metricSourceBadge(def);
+        if (badge) {
+            badge.textContent = b.label;
+            badge.className = 'cond-badge inline-flex items-center px-2 py-1 rounded-lg border text-[10px] font-extrabold tracking-widest uppercase ' + b.cls;
+            badge.title = b.tip + (def ? ('\n' + this._metricTooltip(def)) : '');
+        }
+
         if (prefix) prefix.classList.add('hidden');
         if (suffix) suffix.classList.add('hidden');
 
@@ -695,22 +958,18 @@ var rulesManager = {
             this._schedulerTimer = null;
         }
 
-        // If globally paused, don't schedule.
         if (this.schedulerPaused) return;
 
-        // If no active rules, don't schedule.
         var hasActive = false;
         for (var i = 0; i < this.rules.length; i++) {
             if (this.rules[i] && this.rules[i].active) { hasActive = true; break; }
         }
         if (!hasActive) return;
 
-        // Tick every 30s, rules decide due based on their schedule
         this._schedulerTimer = setInterval(function() {
             self._schedulerTick();
         }, 30 * 1000);
 
-        // run quick tick soon
         setTimeout(function(){ self._schedulerTick(); }, 800);
     },
 
@@ -739,7 +998,6 @@ var rulesManager = {
         var now = new Date();
         var nowMs = now.getTime();
 
-        // Prevent overlapping
         if (this._inFlight[rule.id]) return false;
 
         if (mode === 'AT') {
@@ -769,7 +1027,6 @@ var rulesManager = {
             if (stMin <= enMin) {
                 inWindow = cur >= stMin && cur <= enMin;
             } else {
-                // crosses midnight
                 inWindow = cur >= stMin || cur <= enMin;
             }
             if (!inWindow) return false;
@@ -780,7 +1037,6 @@ var rulesManager = {
             return !last || (nowMs - last) >= (iv * 60 * 1000);
         }
 
-        // ALWAYS
         var intervalMin = parseInt(sched.intervalMin || 5, 10);
         if (!intervalMin || intervalMin < 1) intervalMin = 5;
         var last2 = rule.meta.lastAutoRunAt ? Date.parse(rule.meta.lastAutoRunAt) : 0;
@@ -797,7 +1053,6 @@ var rulesManager = {
         var rule = this.rules[index];
         if (!rule) return;
 
-        // Mark in flight
         this._inFlight[rule.id] = true;
 
         var promises = [];
@@ -873,7 +1128,8 @@ var rulesManager = {
     // Execution (batch)
     // ===========================
     _insightsFieldsForRule: function(rule) {
-        // Build a light but complete set of fields based on conditions
+        // Build a minimal set of fields strictly based on the columns used in conditions.
+        // This keeps it fast and aligned with Ads Manager.
         var need = {
             campaign_id: true,
             account_currency: true
@@ -881,24 +1137,40 @@ var rulesManager = {
 
         var conds = (rule && rule.conditions) ? rule.conditions : [];
         for (var i = 0; i < conds.length; i++) {
-            var k = String(conds[i].metric || '');
-            // Backward compatibility
-            if (k === 'cost_per_result') k = 'cpr';
+            var mk = String(conds[i].metric || '');
+            if (mk === 'cost_per_result') mk = 'cpr';
 
-            if (k === 'ic' || k === 'results') need.actions = true;
-            if (k === 'cpr') need.cost_per_action_type = true;
+            var def = this._getAdsColumnDef(mk);
+            if (def) {
+                // Insights fields
+                if (def.source === 'insight' && def.field) need[def.field] = true;
 
-            if (k === 'spend') need.spend = true;
-            if (k === 'cpc') need.cpc = true;
-            if (k === 'cpm') need.cpm = true;
-            if (k === 'ctr') need.ctr = true;
-            if (k === 'clicks') need.clicks = true;
-            if (k === 'impressions') need.impressions = true;
-            if (k === 'reach') need.reach = true;
-            if (k === 'frequency') need.frequency = true;
+                // Derived/custom needs
+                if ((def.source === 'derived' || def.source === 'custom') && def.requiredFields) {
+                    for (var j = 0; j < def.requiredFields.length; j++) {
+                        need[String(def.requiredFields[j])] = true;
+                    }
+                }
+
+                // Some derived metrics depend on spend
+                if (mk === 'results') need.spend = true;
+            } else {
+                // Legacy mapping
+                if (mk === 'spend') need.spend = true;
+                if (mk === 'ctr') need.ctr = true;
+                if (mk === 'cpc') need.cpc = true;
+                if (mk === 'cpm') need.cpm = true;
+                if (mk === 'clicks') need.clicks = true;
+                if (mk === 'impressions') need.impressions = true;
+                if (mk === 'reach') need.reach = true;
+                if (mk === 'frequency') need.frequency = true;
+                if (mk === 'ic') need.actions = true;
+                if (mk === 'cpr') need.cost_per_action_type = true;
+                if (mk === 'results') { need.spend = true; need.cost_per_action_type = true; }
+            }
         }
 
-        // Minimal fallback to avoid empty insights
+        // Safety: always include spend to allow formatting and some derived fallbacks
         need.spend = true;
 
         var out = [];
@@ -929,16 +1201,16 @@ var rulesManager = {
                 for (var i = 0; i < camps.length; i++) {
                     var c = camps[i];
 
-                    // campaign scope filter
+                    // campaign scope filter (evaluates conditions only inside scope)
                     if (scope === 'ACTIVE' && String(c.status) !== 'ACTIVE') continue;
                     if (scope === 'PAUSED' && String(c.status) !== 'PAUSED') continue;
 
-                    // action intent filter
+                    // action intent filter (do not run updates that don't make sense)
                     if (rule.action.type === 'PAUSE' && String(c.status) !== 'ACTIVE') continue;
                     if (rule.action.type === 'ACTIVATE' && String(c.status) === 'ACTIVE') continue;
 
                     var ins = map[String(c.id)] || {};
-                    if (self._check(rule.conditions, rule.logic, ins)) {
+                    if (self._check(rule.conditions, rule.logic, c, ins)) {
                         tasks.push(window.fbApi.updateObject(c.id, { status: rule.action.type === 'PAUSE' ? 'PAUSED' : 'ACTIVE' }, acc.token));
                     }
                 }
@@ -951,21 +1223,16 @@ var rulesManager = {
             });
     },
 
-    _check: function(conds, logic, ins) {
+    _check: function(conds, logic, campaignObj, ins) {
         conds = conds || [];
         var res = [];
 
         for (var i = 0; i < conds.length; i++) {
             var c = conds[i] || {};
-            var metric = String(c.metric || '');
-            // Backward compatibility
-            if (metric === 'cost_per_result') metric = 'cpr';
+            var metricKey = String(c.metric || '');
+            if (metricKey === 'cost_per_result') metricKey = 'cpr';
 
-            var val = 0;
-            if (metric === 'cpr') val = this._getCPR(ins);
-            else if (metric === 'results') val = this._getResults(ins);
-            else if (metric === 'ic') val = this._getIC(ins);
-            else val = parseFloat(ins[metric] || 0) || 0;
+            var val = this._metricValueFromAds(metricKey, campaignObj, ins);
 
             var pass = false;
             if (c.operator === '>') pass = val > c.value;
@@ -980,47 +1247,6 @@ var rulesManager = {
         }
         for (var k = 0; k < res.length; k++) if (!res[k]) return false;
         return true;
-    },
-
-    _actionsMap: function(arr) {
-        var m = {};
-        if (!arr) return m;
-        for (var i = 0; i < arr.length; i++) {
-            var it = arr[i];
-            if (!it || !it.action_type) continue;
-            m[it.action_type] = parseFloat(it.value || 0) || 0;
-        }
-        return m;
-    },
-
-    _getIC: function(ins) {
-        var acts = this._actionsMap(ins.actions);
-        return (acts['initiate_checkout'] || 0) + (acts['omni_initiated_checkout'] || 0);
-    },
-
-    _getResults: function(ins) {
-        var acts = this._actionsMap(ins.actions);
-        var order = [
-            ['purchase', 'omni_purchase'],
-            ['lead', 'omni_lead'],
-            ['initiate_checkout', 'omni_initiated_checkout'],
-            ['link_click']
-        ];
-        for (var i = 0; i < order.length; i++) {
-            var sum = 0;
-            for (var j = 0; j < order[i].length; j++) sum += (acts[order[i][j]] || 0);
-            if (sum > 0) return sum;
-        }
-        return 0;
-    },
-
-    _getCPR: function(ins) {
-        var costs = this._actionsMap(ins.cost_per_action_type);
-        var order = ['purchase', 'omni_purchase', 'lead', 'omni_lead', 'initiate_checkout', 'omni_initiated_checkout', 'link_click'];
-        for (var i = 0; i < order.length; i++) {
-            if (costs[order[i]] !== undefined) return costs[order[i]];
-        }
-        return 0;
     }
 };
 
