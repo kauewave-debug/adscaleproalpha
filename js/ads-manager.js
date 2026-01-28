@@ -855,6 +855,18 @@
         }
       }
 
+      // Robustez: garantir que `actions` e `cost_per_action_type` venham quando
+      // colunas derivadas (IC/Resultados/CPR) ou custom dependem delas.
+      // Isso evita 'Resultados' zerado por falta do campo na resposta.
+      var needActions = false;
+      var needCosts = false;
+      for(var ii=0; ii<cols.length; ii++){
+        if(cols[ii].key === 'ic' || cols[ii].key === 'results') needActions = true;
+        if(cols[ii].key === 'cpr' || cols[ii].key === 'results') needCosts = true;
+      }
+      if(needActions) f.actions = true;
+      if(needCosts) f.cost_per_action_type = true;
+
       // Ensure base metrics are available for custom formulas if user uses them
       // (but keep light)
       return Object.keys(f).join(',');
@@ -1205,7 +1217,9 @@
         { key: 'status', label: 'Status', source: 'object', format: 'badge' },
         { key: 'ic', label: 'IC', source: 'derived', derived: 'action_count', actionTypes: ['initiate_checkout','omni_initiated_checkout'], requiredFields: ['actions'], format: 'number' },
         // Alinhado ao Ads Manager: Resultados = Compras (purchase)
-        { key: 'results', label: 'Resultados', source: 'derived', derived: 'purchase_count', requiredFields: ['actions'], format: 'number' },
+        // Observação: em alguns cenários a Meta pode retornar custo por compra em cost_per_action_type,
+        // mas não retornar o count em actions. Por isso incluímos ambos para permitir fallback.
+        { key: 'results', label: 'Resultados', source: 'derived', derived: 'purchase_count', requiredFields: ['actions','cost_per_action_type'], format: 'number' },
         // Alinhado ao Ads Manager: Custo por Resultado = Custo por Compra (purchase)
         { key: 'cpr', label: 'Custo por Resultado', source: 'derived', derived: 'purchase_cost', requiredFields: ['cost_per_action_type'], format: 'currency' },
         { key: 'spend', label: 'Gasto', source: 'insight', field: 'spend', format: 'currency' },
@@ -1814,10 +1828,47 @@
       }
 
       // Resultados = compras (purchase) como no Ads Manager
+      // Importante: o Ads Manager pode mostrar compras mesmo quando o array `actions`
+      // vem incompleto dependendo de atribuição/conta/evento. Então fazemos fallback:
+      // - 1) somar contagens de compra em `actions`
+      // - 2) se vier 0, e existir custo por compra em `cost_per_action_type`, estimar: spend / cpp
       if(col.derived==='purchase_count'){
         var a1 = this._actionsToMap(ins.actions);
-        // Meta pode retornar variações (web/omni/offsite)
-        return (a1['purchase'] || 0) + (a1['omni_purchase'] || 0) + (a1['offsite_conversion.fb_pixel_purchase'] || 0);
+        var count = 0;
+
+        // Meta pode retornar variações (web/omni/offsite) e pixel customizado
+        var purchaseKeys = [
+          'purchase',
+          'omni_purchase',
+          'offsite_conversion.fb_pixel_purchase',
+          'offsite_conversion.fb_pixel_custom',
+          'onsite_conversion.purchase',
+          'app_custom_event.fb_mobile_purchase'
+        ];
+
+        for(var pi=0; pi<purchaseKeys.length; pi++){
+          count += (a1[purchaseKeys[pi]] || 0);
+        }
+
+        // Fallback: estimativa por spend/custo_por_compra
+        if(count <= 0){
+          var cpa = this._actionsToMap(ins.cost_per_action_type);
+          var cpp = null;
+          // prioridades (como CPR)
+          if(cpa['purchase'] !== undefined) cpp = cpa['purchase'];
+          else if(cpa['omni_purchase'] !== undefined) cpp = cpa['omni_purchase'];
+          else if(cpa['offsite_conversion.fb_pixel_purchase'] !== undefined) cpp = cpa['offsite_conversion.fb_pixel_purchase'];
+          else if(cpa['app_custom_event.fb_mobile_purchase'] !== undefined) cpp = cpa['app_custom_event.fb_mobile_purchase'];
+
+          var spend = parseFloat(ins.spend || 0) || 0;
+          var cppNum = parseFloat(cpp);
+          if(cppNum && cppNum > 0 && spend > 0){
+            // Ads Manager arredonda; fazemos round para ficar natural
+            count = Math.round(spend / cppNum);
+          }
+        }
+
+        return count;
       }
 
       // Custo por Resultado = custo por compra (purchase) como no Ads Manager
@@ -1827,6 +1878,7 @@
         if(c1['purchase'] !== undefined) return c1['purchase'];
         if(c1['omni_purchase'] !== undefined) return c1['omni_purchase'];
         if(c1['offsite_conversion.fb_pixel_purchase'] !== undefined) return c1['offsite_conversion.fb_pixel_purchase'];
+        if(c1['app_custom_event.fb_mobile_purchase'] !== undefined) return c1['app_custom_event.fb_mobile_purchase'];
         return null; // sem compra -> mostra "—"
       }
 
