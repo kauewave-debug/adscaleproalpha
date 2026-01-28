@@ -855,9 +855,10 @@
         }
       }
 
-      // Robustez: garantir que `actions` e `cost_per_action_type` venham quando
-      // colunas derivadas (IC/Resultados/CPR) ou custom dependem delas.
-      // Isso evita 'Resultados' zerado por falta do campo na resposta.
+      // Robustez: trazer `actions` e `cost_per_action_type` quando colunas derivadas precisam.
+      // - IC depende de actions
+      // - Resultados (compras) usa actions e pode precisar de cost_per_action_type para fallback
+      // - CPR (custo por compra) depende de cost_per_action_type
       var needActions = false;
       var needCosts = false;
       for(var ii=0; ii<cols.length; ii++){
@@ -1827,34 +1828,34 @@
         return sum;
       }
 
-      // Resultados = compras (purchase) como no Ads Manager
-      // Importante: o Ads Manager pode mostrar compras mesmo quando o array `actions`
-      // vem incompleto dependendo de atribuição/conta/evento. Então fazemos fallback:
-      // - 1) somar contagens de compra em `actions`
-      // - 2) se vier 0, e existir custo por compra em `cost_per_action_type`, estimar: spend / cpp
+      // Resultados = compras (purchase) como no Ads Manager.
+      // IMPORTANTE: a Meta frequentemente retorna *múltiplos action_types* para a mesma compra
+      // (ex.: purchase / omni_purchase / offsite_conversion.fb_pixel_purchase) que NÃO devem ser somados.
+      // Para evitar duplicidade (ex.: 1 virar 3), usamos o MAIOR valor entre as chaves conhecidas.
+      // Fallback: quando o array `actions` vier incompleto, estimamos via spend / CPP.
       if(col.derived==='purchase_count'){
         var a1 = this._actionsToMap(ins.actions);
         var count = 0;
 
-        // Meta pode retornar variações (web/omni/offsite) e pixel customizado
+        // Chaves de compra mais comuns (evitar chaves genéricas que causam false-positive)
         var purchaseKeys = [
           'purchase',
-          'omni_purchase',
           'offsite_conversion.fb_pixel_purchase',
-          'offsite_conversion.fb_pixel_custom',
+          'omni_purchase',
           'onsite_conversion.purchase',
           'app_custom_event.fb_mobile_purchase'
         ];
 
         for(var pi=0; pi<purchaseKeys.length; pi++){
-          count += (a1[purchaseKeys[pi]] || 0);
+          var v = a1[purchaseKeys[pi]] || 0;
+          if(v > count) count = v;
         }
 
-        // Fallback: estimativa por spend/custo_por_compra
+        // Fallback: estimativa por spend/custo_por_compra (CPP)
         if(count <= 0){
           var cpa = this._actionsToMap(ins.cost_per_action_type);
           var cpp = null;
-          // prioridades (como CPR)
+          // prioridades (mantidas para bater com CPR)
           if(cpa['purchase'] !== undefined) cpp = cpa['purchase'];
           else if(cpa['omni_purchase'] !== undefined) cpp = cpa['omni_purchase'];
           else if(cpa['offsite_conversion.fb_pixel_purchase'] !== undefined) cpp = cpa['offsite_conversion.fb_pixel_purchase'];
@@ -1863,7 +1864,6 @@
           var spend = parseFloat(ins.spend || 0) || 0;
           var cppNum = parseFloat(cpp);
           if(cppNum && cppNum > 0 && spend > 0){
-            // Ads Manager arredonda; fazemos round para ficar natural
             count = Math.round(spend / cppNum);
           }
         }
@@ -1872,12 +1872,13 @@
       }
 
       // Custo por Resultado = custo por compra (purchase) como no Ads Manager
+      // Também evita duplicidade: prioriza uma chave principal (não soma).
       if(col.derived==='purchase_cost'){
         var c1 = this._actionsToMap(ins.cost_per_action_type);
-        // prioridade para purchase/omni_purchase e variações
         if(c1['purchase'] !== undefined) return c1['purchase'];
-        if(c1['omni_purchase'] !== undefined) return c1['omni_purchase'];
         if(c1['offsite_conversion.fb_pixel_purchase'] !== undefined) return c1['offsite_conversion.fb_pixel_purchase'];
+        if(c1['omni_purchase'] !== undefined) return c1['omni_purchase'];
+        if(c1['onsite_conversion.purchase'] !== undefined) return c1['onsite_conversion.purchase'];
         if(c1['app_custom_event.fb_mobile_purchase'] !== undefined) return c1['app_custom_event.fb_mobile_purchase'];
         return null; // sem compra -> mostra "—"
       }
