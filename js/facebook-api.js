@@ -444,6 +444,31 @@ var FacebookAPI = (function () {
             });
     };
 
+    /**
+     * (BETA) Try Meta internal edge to estimate ads usage/volume.
+     * Endpoint is not officially documented and may fail depending on permissions.
+     * Usage examples:
+     *   fbApi.getAdsVolume('act_123', token)
+     *   fbApi.getAdsVolume('act_123', token, { page_id: '123456' })
+     */
+    FacebookAPI.prototype.getAdsVolume = function (adAccountId, token, options) {
+        options = options || {};
+        var id = String(adAccountId || '');
+        // ensure act_ prefix
+        if (id && id.indexOf('act_') !== 0) id = 'act_' + id;
+
+        var params = {
+            access_token: token
+        };
+
+        // some implementations accept page_id
+        if (options.page_id) params.page_id = String(options.page_id);
+        if (options.fields) params.fields = String(options.fields);
+
+        // call edge
+        return this.call('/' + id + '/ads_volume', params);
+    };
+
     FacebookAPI.prototype.updateObject = function (objectId, updateData, token) {
         var self = this;
         self.log('Updating object ' + objectId + '...', 'INFO', updateData);
