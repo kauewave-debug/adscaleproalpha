@@ -1204,8 +1204,10 @@
       this.columnsCatalog = [
         { key: 'status', label: 'Status', source: 'object', format: 'badge' },
         { key: 'ic', label: 'IC', source: 'derived', derived: 'action_count', actionTypes: ['initiate_checkout','omni_initiated_checkout'], requiredFields: ['actions'], format: 'number' },
-        { key: 'results', label: 'Resultados', source: 'derived', derived: 'best_result_count', requiredFields: ['actions'], format: 'number' },
-        { key: 'cpr', label: 'Custo por Resultado', source: 'derived', derived: 'best_result_cost', requiredFields: ['cost_per_action_type'], format: 'currency' },
+        // Alinhado ao Ads Manager: Resultados = Compras (purchase)
+        { key: 'results', label: 'Resultados', source: 'derived', derived: 'purchase_count', requiredFields: ['actions'], format: 'number' },
+        // Alinhado ao Ads Manager: Custo por Resultado = Custo por Compra (purchase)
+        { key: 'cpr', label: 'Custo por Resultado', source: 'derived', derived: 'purchase_cost', requiredFields: ['cost_per_action_type'], format: 'currency' },
         { key: 'spend', label: 'Gasto', source: 'insight', field: 'spend', format: 'currency' },
         { key: 'impressions', label: 'Impressões', source: 'insight', field: 'impressions', format: 'number' },
         { key: 'reach', label: 'Alcance', source: 'insight', field: 'reach', format: 'number' },
@@ -1767,6 +1769,8 @@
       }
 
       if(fmt==='currency'){
+        // Allow null/undefined to show dash when metric does not exist (ex: CPR without purchases)
+        if(v===null) return '<span class="text-gray-700">-</span>';
         var n = parseFloat(v); if(isNaN(n)) n=0;
         return '<span class="font-medium text-white">'+this._esc(this.formatCurrency(n))+'</span>';
       }
@@ -1808,9 +1812,28 @@
         (col.actionTypes||[]).forEach(t => sum += (m[t]||0));
         return sum;
       }
+
+      // Resultados = compras (purchase) como no Ads Manager
+      if(col.derived==='purchase_count'){
+        var a1 = this._actionsToMap(ins.actions);
+        // Meta pode retornar variações (web/omni/offsite)
+        return (a1['purchase'] || 0) + (a1['omni_purchase'] || 0) + (a1['offsite_conversion.fb_pixel_purchase'] || 0);
+      }
+
+      // Custo por Resultado = custo por compra (purchase) como no Ads Manager
+      if(col.derived==='purchase_cost'){
+        var c1 = this._actionsToMap(ins.cost_per_action_type);
+        // prioridade para purchase/omni_purchase e variações
+        if(c1['purchase'] !== undefined) return c1['purchase'];
+        if(c1['omni_purchase'] !== undefined) return c1['omni_purchase'];
+        if(c1['offsite_conversion.fb_pixel_purchase'] !== undefined) return c1['offsite_conversion.fb_pixel_purchase'];
+        return null; // sem compra -> mostra "—"
+      }
+
+      // Backward compatibility (se existirem regras/colunas antigas armazenadas)
       if(col.derived==='best_result_count'){
         var a = this._actionsToMap(ins.actions);
-        var grps = [['purchase','omni_purchase'],['lead','omni_lead'],['initiate_checkout','omni_initiated_checkout'],['link_click']];
+        var grps = [['purchase','omni_purchase','offsite_conversion.fb_pixel_purchase'],['lead','omni_lead'],['initiate_checkout','omni_initiated_checkout'],['link_click']];
         for(var i=0;i<grps.length;i++){
           var s = 0;
           for(var j=0;j<grps[i].length;j++) s += (a[grps[i][j]]||0);
@@ -1820,11 +1843,11 @@
       }
       if(col.derived==='best_result_cost'){
         var c = this._actionsToMap(ins.cost_per_action_type);
-        var order = ['purchase','omni_purchase','lead','omni_lead','initiate_checkout','omni_initiated_checkout','link_click'];
-        for(var i=0;i<order.length;i++){
-          if(c[order[i]]!==undefined) return c[order[i]];
+        var order = ['purchase','omni_purchase','offsite_conversion.fb_pixel_purchase','lead','omni_lead','initiate_checkout','omni_initiated_checkout','link_click'];
+        for(var k=0;k<order.length;k++){
+          if(c[order[k]]!==undefined) return c[order[k]];
         }
-        return 0;
+        return null;
       }
       return 0;
     },
