@@ -962,9 +962,14 @@
         }
 
         html += '<td class="p-4 sticky right-0 bg-gray-900/95 group-hover:bg-gray-800/95 transition-colors z-10 border-l border-gray-800/50 text-center">'
-              + ' <button onclick="adsManager.openEditDrawer(\''+this._escAttr(item.id)+'\')" class="text-gray-500 hover:text-blue-400 p-2 rounded-lg hover:bg-blue-500/10 transition-all" title="Editar">'
-              + '   <i class="fas fa-pen"></i>'
-              + ' </button>'
+              + ' <div class="flex items-center justify-center gap-1">'
+              + '   <button onclick="adsManager.openEditDrawer(\''+this._escAttr(item.id)+'\')" class="text-gray-500 hover:text-blue-400 p-2 rounded-lg hover:bg-blue-500/10 transition-all" title="Edição rápida">'
+              + '     <i class="fas fa-pen"></i>'
+              + '   </button>'
+              + '   <button onclick="adsManager.openBuilder(\'edit\',\''+this.currentLevel.slice(0,-1)+'\',{ item: adsManager.data['+i+'] })" class="text-gray-500 hover:text-emerald-400 p-2 rounded-lg hover:bg-emerald-500/10 transition-all" title="Editar (Builder)">' 
+              + '     <i class="fas fa-sliders-h"></i>'
+              + '   </button>'
+              + ' </div>'
               + '</td>';
 
         html += '</tr>';
@@ -2056,6 +2061,13 @@
       return this._esc(String(s)).replace(/'/g,'&#039;');
     }
   };
+
+  // Alias: openBuilder is provided by js/ads-manager/builder.js, but keep a safe stub to avoid console errors.
+  if(typeof adsManager.openBuilder !== 'function'){
+    adsManager.openBuilder = function(){
+      alert('Builder ainda não carregou. Recarregue a página (Ctrl+F5).');
+    };
+  }
 
   window.adsManager = adsManager;
 })();
