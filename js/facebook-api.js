@@ -1,13 +1,18 @@
 /**
  * Facebook Graph API Integration Module
  * Handles all communications with Meta APIs
- * Version: 3.2 - Helpers public call() + fetchAllPath() + safer Pages fallback
+ * Version: 3.3 - Proxy-per-token support + helpers call()/fetchAllPath()
  */
 var FacebookAPI = (function () {
     function FacebookAPI(logger) {
         this.baseUrl = 'https://graph.facebook.com/v19.0';
         this.logger = logger || console;
         this.maxRetries = 3;
+
+        // Proxy routing (per token)
+        // tokenProxyMap[token] = proxyBase (example: https://your-proxy.com/https://graph.facebook.com/v19.0)
+        this.tokenProxyMap = {};
+
         this.log('Facebook API Module initialized', 'INFO');
     }
 
@@ -22,6 +27,120 @@ var FacebookAPI = (function () {
         }
     };
 
+    // =====================
+    // Proxy (public)
+    // =====================
+    FacebookAPI.prototype.setProxyForToken = function (token, proxyBase) {
+        try {
+            token = String(token || '').trim();
+            proxyBase = String(proxyBase || '').trim();
+            if (!token) return;
+            if (!proxyBase) {
+                delete this.tokenProxyMap[token];
+                return;
+            }
+            // Normalize: remove trailing slash
+            proxyBase = proxyBase.replace(/\/+$/, '');
+            this.tokenProxyMap[token] = proxyBase;
+        } catch (e) {}
+    };
+
+    FacebookAPI.prototype.clearProxyForToken = function (token) {
+        try {
+            token = String(token || '').trim();
+            if (!token) return;
+            delete this.tokenProxyMap[token];
+        } catch (e) {}
+    };
+
+    FacebookAPI.prototype._proxyForToken = function (token) {
+        try {
+            token = String(token || '').trim();
+            if (!token) return null;
+            return this.tokenProxyMap[token] || null;
+        } catch (e) {
+            return null;
+        }
+    };
+
+    FacebookAPI.prototype._extractTokenFromUrl = function (url) {
+        try {
+            var m = String(url || '').match(/[?&]access_token=([^&]+)/);
+            if (m && m[1]) return decodeURIComponent(m[1]);
+        } catch (e) {}
+        return null;
+    };
+
+    FacebookAPI.prototype._applyProxyToUrl = function (url, tokenOverride) {
+        // Routes a FULL absolute Graph URL through the proxy configured for a token.
+        // Supports multiple proxy patterns:
+        //  - Base replacement: proxyBase="https://proxy.com/https://graph.facebook.com/v19.0"
+        //  - Prefix full URL:  proxyBase="https://proxy.com/" => https://proxy.com/https://graph.facebook.com/v19.0/...
+        //  - Query param:      proxyBase="https://proxy.com/?url=" => https://proxy.com/?url=<ENCODED_URL>
+        //  - Placeholders:
+        //      {url}  -> encodeURIComponent(fullUrl)
+        //      {raw}  -> fullUrl
+        //      {path} -> path after https://graph.facebook.com/vX.Y
+        try {
+            url = String(url || '');
+
+            var token = null;
+            if (tokenOverride) token = String(tokenOverride || '').trim();
+            if (!token) token = this._extractTokenFromUrl(url);
+
+            var proxyBase = token ? this._proxyForToken(token) : null;
+            if (!proxyBase) return url;
+            proxyBase = String(proxyBase || '').trim();
+            if (!proxyBase) return url;
+
+            // Prevent double-proxy for most patterns
+            if (proxyBase.indexOf('{') === -1 && url.indexOf(proxyBase) === 0) return url;
+
+            // Detect Graph base + path
+            var mGraph = url.match(/^https:\/\/graph\.facebook\.com\/v\d+\.\d+/);
+            var graphBase = mGraph && mGraph[0] ? mGraph[0] : null;
+            var pathAfter = graphBase ? url.slice(graphBase.length) : null; // includes leading '/'
+
+            // Placeholder patterns
+            if (proxyBase.indexOf('{url}') !== -1) {
+                return proxyBase.replace(/\{url\}/g, encodeURIComponent(url));
+            }
+            if (proxyBase.indexOf('{raw}') !== -1) {
+                return proxyBase.replace(/\{raw\}/g, url);
+            }
+            if (proxyBase.indexOf('{path}') !== -1) {
+                return proxyBase.replace(/\{path\}/g, (pathAfter !== null ? pathAfter : url));
+            }
+
+            // Query-param patterns (common proxy gateways)
+            if (/(^|[?&])(url|target|dest|destination|uri)=$/i.test(proxyBase) || /[?&](url|target|dest|destination|uri)=$/i.test(proxyBase)) {
+                return proxyBase + encodeURIComponent(url);
+            }
+
+            // Base replacement pattern: proxyBase already points to a Graph base.
+            // Example: https://proxy.com/https://graph.facebook.com/v19.0
+            if (graphBase && proxyBase.indexOf('graph.facebook.com') !== -1) {
+                var pb = proxyBase.replace(/\/+$/, '');
+                return pb + pathAfter;
+            }
+
+            // If proxyBase ends with a version segment (/v19.0), treat it as graphBase replacement.
+            if (graphBase && /\/v\d+\.\d+\/?$/i.test(proxyBase)) {
+                var pb2 = proxyBase.replace(/\/+$/, '');
+                return pb2 + pathAfter;
+            }
+
+            // Default: prefix FULL URL after the proxy base
+            var pb3 = proxyBase.replace(/\/+$/, '');
+            return pb3 + '/' + url;
+        } catch (e) {
+            return url;
+        }
+    };
+
+    // =====================
+    // Retry helpers
+    // =====================
     FacebookAPI.prototype._sleep = function (ms) {
         return new Promise(function (resolve) {
             setTimeout(resolve, ms);
@@ -40,6 +159,9 @@ var FacebookAPI = (function () {
     FacebookAPI.prototype._requestJson = function (url, attempt) {
         var self = this;
         attempt = attempt || 0;
+
+        // Proxy if needed
+        url = self._applyProxyToUrl(url);
 
         return fetch(url)
             .then(function (response) {
@@ -113,13 +235,41 @@ var FacebookAPI = (function () {
     };
 
     FacebookAPI.prototype._buildUrl = function (path, params) {
+        // Build URL. If token has proxy, support multiple proxy patterns.
+        // For placeholder/query proxies we build the normal Graph URL first and then proxy it.
+        var base = this.baseUrl;
+        var token = null;
+        try { token = params && params.access_token ? String(params.access_token) : null; } catch (e0) { token = null; }
+
         var parts = [];
+        params = params || {};
         for (var k in params) {
             if (params.hasOwnProperty(k) && params[k] !== undefined && params[k] !== null) {
                 parts.push(encodeURIComponent(k) + '=' + encodeURIComponent(String(params[k])));
             }
         }
-        return this.baseUrl + path + (parts.length ? '?' + parts.join('&') : '');
+
+        var url = base + path + (parts.length ? '?' + parts.join('&') : '');
+
+        // If a proxy is configured for this token, route the URL through it.
+        try {
+            if (token) {
+                var proxyBase = this._proxyForToken(token);
+                if (proxyBase) {
+                    // If proxyBase looks like a direct base replacement (contains graph...), keep legacy behavior:
+                    if (String(proxyBase).indexOf('{') === -1 && String(proxyBase).indexOf('graph.facebook.com') !== -1) {
+                        // Use proxyBase as base for graph requests
+                        var pb = String(proxyBase).replace(/\/+$/, '');
+                        url = pb + path + (parts.length ? '?' + parts.join('&') : '');
+                    } else {
+                        // Otherwise, proxy the full URL (handles placeholders/query)
+                        url = this._applyProxyToUrl(url, token);
+                    }
+                }
+            }
+        } catch (e1) {}
+
+        return url;
     };
 
     /**
@@ -148,6 +298,7 @@ var FacebookAPI = (function () {
         var all = [];
 
         function next(url) {
+            url = self._applyProxyToUrl(url);
             self.log('Fetching page: ' + self._safeUrl(url), 'INFO');
             return self._requestJson(url, 0).then(function (data) {
                 var chunk = (data && data.data) ? data.data : [];
@@ -164,6 +315,9 @@ var FacebookAPI = (function () {
         return next(fullUrl);
     };
 
+    // =====================
+    // Endpoints
+    // =====================
     FacebookAPI.prototype.validateToken = function (token) {
         var self = this;
         self.log('Validating access token...', 'INFO');
@@ -358,7 +512,6 @@ var FacebookAPI = (function () {
             access_token: token
         };
 
-        // Prefer explicit time_range when provided (custom picker)
         if (options.time_range && options.time_range.since && options.time_range.until) {
             params.time_range = JSON.stringify({
                 since: String(options.time_range.since),
@@ -391,17 +544,12 @@ var FacebookAPI = (function () {
             });
     };
 
-    /**
-     * Get Facebook Pages (ALL pages)
-     */
     FacebookAPI.prototype.getPages = function (token, options) {
         var self = this;
         self.log('Fetching pages via /me/accounts...', 'INFO');
 
         options = options || {};
 
-        // Default fields are intentionally LIGHT. Some fields (fan_count, access_token, ad_limits)
-        // may require extra permissions and/or make the response too heavy.
         var primaryFields = options.fields || 'id,name,category,picture{url}';
         var primaryLimit = options.limit || 100;
 
@@ -428,7 +576,6 @@ var FacebookAPI = (function () {
                         previousLimit: primaryLimit
                     });
 
-                    // Fallback: keep it very light.
                     var fallbackFields = 'id,name,category,picture{url}';
                     var fallbackLimit = 50;
 
@@ -445,33 +592,156 @@ var FacebookAPI = (function () {
     };
 
     /**
-     * (BETA) Try Meta internal edge to estimate ads usage/volume.
-     * Endpoint is not officially documented and may fail depending on permissions.
-     * Usage examples:
-     *   fbApi.getAdsVolume('act_123', token)
-     *   fbApi.getAdsVolume('act_123', token, { page_id: '123456' })
+     * (BETA) Meta internal edge for ads volume
      */
     FacebookAPI.prototype.getAdsVolume = function (adAccountId, token, options) {
         options = options || {};
         var id = String(adAccountId || '');
-        // ensure act_ prefix
         if (id && id.indexOf('act_') !== 0) id = 'act_' + id;
 
-        var params = {
-            access_token: token
-        };
-
-        // some implementations accept page_id
+        var params = { access_token: token };
         if (options.page_id) params.page_id = String(options.page_id);
         if (options.fields) params.fields = String(options.fields);
-
-        // call edge
         return this.call('/' + id + '/ads_volume', params);
+    };
+
+    // =====================
+    // Create helpers (POST)
+    // =====================
+    FacebookAPI.prototype._postForm = function (objectPath, payload, token) {
+        // objectPath examples:
+        //  - act_123/campaigns
+        //  - act_123/adsets
+        //  - act_123/adcreatives
+        var self = this;
+        payload = payload || {};
+
+        var proxyBase = self._proxyForToken(token);
+        var base = proxyBase || self.baseUrl;
+
+        var formData = new FormData();
+        for (var key in payload) {
+            if (payload.hasOwnProperty(key) && payload[key] !== undefined && payload[key] !== null) {
+                formData.append(key, String(payload[key]));
+            }
+        }
+        formData.append('access_token', token);
+
+        var postUrl = base + '/' + objectPath;
+        // If proxyBase uses placeholders/query, transform postUrl.
+        if (proxyBase && String(proxyBase).indexOf('{') !== -1) {
+            postUrl = self._applyProxyToUrl(self.baseUrl + '/' + objectPath + '?access_token=' + encodeURIComponent(token), token);
+        } else if (proxyBase && String(proxyBase).indexOf('graph.facebook.com') === -1) {
+            postUrl = self._applyProxyToUrl(self.baseUrl + '/' + objectPath + '?access_token=' + encodeURIComponent(token), token);
+        }
+
+        return fetch(postUrl, {
+            method: 'POST',
+            body: formData
+        })
+            .then(function (response) {
+                return response.json().then(function (json) {
+                    return { ok: response.ok, status: response.status, json: json };
+                });
+            })
+            .then(function (res) {
+                var data = res.json;
+                if (data && data.error) throw new Error(data.error.message);
+
+                // Accept common success shapes.
+                var ok = false;
+                if (data === true) ok = true;
+                if (data && data.success === true) ok = true;
+                if (data && data.id) ok = true;
+                if (data && data.result === true) ok = true;
+
+                if (!res.ok && !ok) {
+                    throw new Error('HTTP ' + res.status);
+                }
+
+                if (!ok) {
+                    self.log('POST returned an unexpected response shape. Treating as success.', 'WARN', data);
+                } else {
+                    self.log('POST success: ' + objectPath, 'SUCCESS', data);
+                }
+
+                return data;
+            });
+    };
+
+    /**
+     * Create campaign (POST /{act_id}/campaigns)
+     */
+    FacebookAPI.prototype.createCampaign = function (adAccountId, payload, token) {
+        try {
+            var id = String(adAccountId || '');
+            if (id && id.indexOf('act_') !== 0) id = 'act_' + id;
+            return this._postForm(id + '/campaigns', payload || {}, token);
+        } catch (e) {
+            return Promise.reject(e);
+        }
+    };
+
+    /**
+     * Create ad set (POST /{act_id}/adsets)
+     */
+    FacebookAPI.prototype.createAdSet = function (adAccountId, payload, token) {
+        try {
+            var idA = String(adAccountId || '');
+            if (idA && idA.indexOf('act_') !== 0) idA = 'act_' + idA;
+            return this._postForm(idA + '/adsets', payload || {}, token);
+        } catch (eA) {
+            return Promise.reject(eA);
+        }
+    };
+
+    /**
+     * Create ad creative (POST /act_{id}/adcreatives)
+     */
+    FacebookAPI.prototype.createAdCreative = function (adAccountId, payload, token) {
+        try {
+            var idC = String(adAccountId || '');
+            if (idC && idC.indexOf('act_') !== 0) idC = 'act_' + idC;
+            return this._postForm(idC + '/adcreatives', payload || {}, token);
+        } catch (eC) {
+            return Promise.reject(eC);
+        }
+    };
+
+    /**
+     * Upload ad image by URL (POST /act_{id}/adimages)
+     * Returns Meta response (contains image hash).
+     */
+    FacebookAPI.prototype.createAdImage = function (adAccountId, imageUrl, token) {
+        try {
+            var idI = String(adAccountId || '');
+            if (idI && idI.indexOf('act_') !== 0) idI = 'act_' + idI;
+            return this._postForm(idI + '/adimages', { url: String(imageUrl || '') }, token);
+        } catch (eI) {
+            return Promise.reject(eI);
+        }
+    };
+
+    /**
+     * Create ad (POST /act_{id}/ads)
+     */
+    FacebookAPI.prototype.createAd = function (adAccountId, payload, token) {
+        try {
+            var idAd = String(adAccountId || '');
+            if (idAd && idAd.indexOf('act_') !== 0) idAd = 'act_' + idAd;
+            return this._postForm(idAd + '/ads', payload || {}, token);
+        } catch (eAd) {
+            return Promise.reject(eAd);
+        }
     };
 
     FacebookAPI.prototype.updateObject = function (objectId, updateData, token) {
         var self = this;
         self.log('Updating object ' + objectId + '...', 'INFO', updateData);
+
+        // For POST, also support non-base proxy patterns by proxying the full URL.
+        var proxyBase = self._proxyForToken(token);
+        var base = proxyBase || self.baseUrl;
 
         var formData = new FormData();
         for (var key in updateData) {
@@ -481,7 +751,18 @@ var FacebookAPI = (function () {
         }
         formData.append('access_token', token);
 
-        return fetch(this.baseUrl + '/' + objectId, {
+        var postUrl = base + '/' + objectId;
+        // If proxyBase uses placeholders/query, transform postUrl.
+        if (proxyBase && String(proxyBase).indexOf('{') !== -1) {
+            postUrl = self._applyProxyToUrl(self.baseUrl + '/' + objectId + '?access_token=' + encodeURIComponent(token), token);
+            // We appended access_token in query to allow proxy routing; real token is still in body.
+            // Remove any "?access_token=..." from postUrl if proxy requires only raw/path.
+        } else if (proxyBase && String(proxyBase).indexOf('graph.facebook.com') === -1) {
+            // Prefix proxy pattern
+            postUrl = self._applyProxyToUrl(self.baseUrl + '/' + objectId + '?access_token=' + encodeURIComponent(token), token);
+        }
+
+        return fetch(postUrl, {
             method: 'POST',
             body: formData
         })
