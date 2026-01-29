@@ -11,9 +11,25 @@ var profilesManager = {
 
     init: function() {
         this.loadProfiles();
+
+        // Apply proxy routing for loaded profiles
+        this._applyProxiesToFbApi();
+
         this.renderProfilesList();
         this.backgroundSyncProfiles();
         if (window.logger) window.logger.info('Profiles Manager initialized (v3.1)');
+    },
+
+    _applyProxiesToFbApi: function() {
+        try {
+            if (!window.fbApi || typeof window.fbApi.setProxyForToken !== 'function') return;
+            for (var i = 0; i < this.profiles.length; i++) {
+                var p = this.profiles[i];
+                if (p && p.token && p.proxy) {
+                    window.fbApi.setProxyForToken(p.token, p.proxy);
+                }
+            }
+        } catch (e) {}
     },
 
     loadProfiles: function() {
@@ -190,6 +206,10 @@ var profilesManager = {
         var token = this.extractToken(raw);
         var btn = document.getElementById('btn-add-token');
 
+        // Proxy (optional)
+        var proxyInput = document.getElementById('input-proxy');
+        var proxy = proxyInput ? String(proxyInput.value || '').trim() : '';
+
         if (!token || token.length < 40) { alert('Token inválido.'); return; }
         if (!window.fbApi) { alert('API não carregada.'); return; }
 
@@ -199,7 +219,25 @@ var profilesManager = {
         window.fbApi.validateToken(token)
             .then(function(pd) {
                 var ok = self.addProfile(pd, token);
-                if (ok) { self.closeModal(); if (tokenInput) tokenInput.value = ''; }
+                if (ok) {
+                    // Persist proxy on the profile (by id) + set proxy routing in fbApi
+                    if (proxy) {
+                        try {
+                            var p = self._findProfile(pd.id);
+                            if (p) {
+                                p.proxy = proxy;
+                                self.saveProfiles();
+                            }
+                            if (window.fbApi && typeof window.fbApi.setProxyForToken === 'function') {
+                                window.fbApi.setProxyForToken(token, proxy);
+                            }
+                        } catch (e) {}
+                    }
+
+                    self.closeModal();
+                    if (tokenInput) tokenInput.value = '';
+                    if (proxyInput) proxyInput.value = '';
+                }
             })
             .catch(function(err) { alert('Erro: ' + (err.message || err)); })
             .finally(function() { btn.disabled = false; btn.innerHTML = 'Adicionar Perfil'; });
@@ -229,6 +267,51 @@ var profilesManager = {
         this._tokenModalProfileId = null;
     },
     _maskToken: function(t) { return t ? (t.slice(0,8) + '••••••••' + t.slice(-6)) : ''; },
+
+    // Proxy modal
+    _proxyModalProfileId: null,
+    openProxyModal: function(profileId) {
+        var p = this._findProfile(profileId);
+        if (!p) return;
+        this._proxyModalProfileId = profileId;
+        var m = document.getElementById('modal-proxy');
+        if (m) m.classList.remove('hidden');
+        var sub = document.getElementById('proxy-subtitle');
+        var inp = document.getElementById('proxy-input');
+        if (sub) sub.textContent = p.name;
+        if (inp) inp.value = p.proxy || '';
+    },
+    closeProxyModal: function() {
+        var m = document.getElementById('modal-proxy');
+        if (m) m.classList.add('hidden');
+        this._proxyModalProfileId = null;
+    },
+    saveProxyFromModal: function() {
+        var p = this._findProfile(this._proxyModalProfileId);
+        if (!p) return;
+        var inp = document.getElementById('proxy-input');
+        var proxy = inp ? String(inp.value || '').trim() : '';
+
+        p.proxy = proxy;
+        this.saveProfiles();
+        this._applyProxiesToFbApi();
+        this.renderProfilesList();
+
+        if (window.logger) window.logger.success('Proxy atualizado', { profile: p.name, hasProxy: !!proxy });
+        this.closeProxyModal();
+    },
+    clearProxyFromModal: function() {
+        var p = this._findProfile(this._proxyModalProfileId);
+        if (!p) return;
+        p.proxy = '';
+        this.saveProfiles();
+        if (window.fbApi && typeof window.fbApi.clearProxyForToken === 'function') {
+            window.fbApi.clearProxyForToken(p.token);
+        }
+        this.renderProfilesList();
+        if (window.logger) window.logger.info('Proxy removido', { profile: p.name });
+        this.closeProxyModal();
+    },
     
     copyCurrentTokenFromModal: function() {
         var p = this._findProfile(this._tokenModalProfileId);
@@ -249,8 +332,20 @@ var profilesManager = {
 
         window.fbApi.validateToken(token).then(function(pd) {
             if (String(pd.id) !== String(p.id)) throw new Error('Token pertence a outro usuário.');
+
+            // If there is proxy configured, move proxy binding to new token
+            var proxy = p.proxy || '';
+            if (window.fbApi && typeof window.fbApi.clearProxyForToken === 'function') {
+                window.fbApi.clearProxyForToken(p.token);
+            }
+
             p.token = token;
             self.saveProfiles();
+
+            if (proxy && window.fbApi && typeof window.fbApi.setProxyForToken === 'function') {
+                window.fbApi.setProxyForToken(token, proxy);
+            }
+
             self.renderProfilesList();
             return self.syncProfileMeta(p.id);
         }).then(function() {
@@ -309,6 +404,9 @@ var profilesManager = {
                     <div class="flex flex-col gap-2">
                         <button onclick="profilesManager.syncProfileMeta('${p.id}')" class="w-8 h-8 rounded-lg bg-gray-800 hover:bg-blue-600 hover:text-white text-gray-400 flex items-center justify-center transition-colors" title="Sincronizar">
                             <i class="fas fa-sync-alt ${syncing ? 'fa-spin' : ''}"></i>
+                        </button>
+                        <button onclick="profilesManager.openProxyModal('${p.id}')" class="w-8 h-8 rounded-lg bg-gray-800 hover:bg-indigo-600 hover:text-white text-gray-400 flex items-center justify-center transition-colors" title="Configurar Proxy">
+                            <i class="fas fa-globe-americas"></i>
                         </button>
                         <button onclick="profilesManager.openTokenModal('${p.id}')" class="w-8 h-8 rounded-lg bg-gray-800 hover:bg-yellow-600 hover:text-white text-gray-400 flex items-center justify-center transition-colors" title="Editar Token">
                             <i class="fas fa-key"></i>
