@@ -364,6 +364,9 @@
                         </div>
                     </div>
                     <div class="flex gap-2">
+                        <button onclick="adsManager.openBuilder('create', (adsManager.currentLevel==='campaigns'?'campaign':(adsManager.currentLevel==='adsets'?'adset':'ad')) )" class="px-4 py-2.5 text-xs font-extrabold rounded-xl bg-blue-600 hover:bg-blue-500 border border-blue-500/30 text-white transition-all flex items-center gap-2 shadow-lg shadow-blue-900/20">
+                            <i class="fas fa-plus"></i> Criar
+                        </button>
                         <button onclick="adsManager.openColumnsModal()" class="px-4 py-2.5 text-xs font-semibold rounded-xl bg-gray-900 hover:bg-gray-800 border border-gray-800 text-gray-300 hover:text-white transition-all flex items-center gap-2">
                             <i class="fas fa-columns"></i> Colunas
                         </button>
@@ -630,6 +633,16 @@
             <div class="p-6">
                 <p class="text-sm text-gray-400 mb-4">Insira o Access Token do usuário ou sistema.</p>
                 <textarea id="input-token" rows="4" class="w-full bg-gray-950 border border-gray-800 rounded-2xl p-4 text-white text-xs font-mono focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none resize-none placeholder-gray-700 transition-all" placeholder="EAAB..."></textarea>
+
+                <div class="mt-4">
+                    <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Proxy (opcional)</label>
+                    <div class="relative">
+                        <i class="fas fa-globe-americas absolute left-4 top-1/2 -translate-y-1/2 text-gray-600 text-sm"></i>
+                        <input id="input-proxy" type="text" class="w-full bg-gray-950 border border-gray-800 rounded-2xl pl-11 pr-4 py-3 text-sm text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all" placeholder="Ex: https://seu-proxy.com/https://graph.facebook.com/v19.0">
+                    </div>
+                    <p class="mt-2 text-[10px] text-gray-500">Se informado, todas as chamadas da API para este perfil serão feitas via proxy.</p>
+                </div>
+
                 <div class="mt-4 flex items-center gap-2 text-[10px] text-yellow-500 bg-yellow-500/10 p-3 rounded-xl border border-yellow-500/20">
                     <i class="fas fa-shield-alt"></i> Permissões necessárias: ads_management, ads_read.
                 </div>
@@ -901,10 +914,390 @@
         </div>
     </div>
 
+    <!-- Modal: Campaign Builder (UI-first; no API submit yet) -->
+    <div id="modal-campaign-builder" class="fixed inset-0 z-[60] hidden bg-black/70 backdrop-blur-sm flex items-center justify-center p-4" onclick="if(event.target===this) adsManager.closeBuilder()">
+        <div class="bg-gray-900 border border-gray-800 rounded-3xl shadow-2xl w-full max-w-6xl max-h-[92vh] flex flex-col overflow-hidden animate-fade-in">
+            <!-- Header -->
+            <div class="p-6 border-b border-gray-800 bg-gray-900/50 flex items-center justify-between gap-4 shrink-0">
+                <div class="min-w-0">
+                    <div class="flex items-center gap-2">
+                        <span id="builder-mode-chip" class="text-[10px] font-bold px-2 py-1 rounded-lg border border-blue-500/20 bg-blue-500/10 text-blue-300">CRIAR</span>
+                        <span id="builder-level-chip" class="text-[10px] font-bold px-2 py-1 rounded-lg border border-gray-700 bg-gray-800 text-gray-300">CAMPANHA</span>
+                    </div>
+                    <h3 id="builder-title" class="text-xl font-extrabold text-white tracking-tight mt-2 truncate">Criar campanha</h3>
+                    <p id="builder-subtitle" class="text-xs text-gray-500 mt-1 truncate">Configure sua estrutura como no Gerenciador de Anúncios da Meta</p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button type="button" onclick="adsManager.builderTogglePreview()" class="columns-btn" title="Pré-visualização">
+                        <i class="fas fa-eye"></i> Preview
+                    </button>
+                    <button type="button" onclick="adsManager.closeBuilder()" class="w-10 h-10 rounded-full bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-400 hover:text-white transition-colors">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Stepper + Body -->
+            <div class="flex-1 min-h-0 overflow-hidden flex flex-col">
+                <!-- Stepper -->
+                <div class="px-6 py-4 border-b border-gray-800 bg-gray-950/40 shrink-0">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <button type="button" onclick="adsManager.builderGoStep(0)" class="builder-step" id="builder-step-campaign">
+                            <div class="flex items-center gap-3">
+                                <div class="w-9 h-9 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-300 font-extrabold">1</div>
+                                <div class="text-left">
+                                    <p class="text-xs font-extrabold text-white">Campanha</p>
+                                    <p class="text-[10px] text-gray-500">Objetivo, nome, orçamento</p>
+                                </div>
+                            </div>
+                        </button>
+                        <button type="button" onclick="adsManager.builderGoStep(1)" class="builder-step" id="builder-step-adset">
+                            <div class="flex items-center gap-3">
+                                <div class="w-9 h-9 rounded-xl bg-gray-800 border border-gray-700 flex items-center justify-center text-gray-300 font-extrabold">2</div>
+                                <div class="text-left">
+                                    <p class="text-xs font-extrabold text-white">Conjunto</p>
+                                    <p class="text-[10px] text-gray-500">Público, posicionamentos, orçamento</p>
+                                </div>
+                            </div>
+                        </button>
+                        <button type="button" onclick="adsManager.builderGoStep(2)" class="builder-step" id="builder-step-ad">
+                            <div class="flex items-center gap-3">
+                                <div class="w-9 h-9 rounded-xl bg-gray-800 border border-gray-700 flex items-center justify-center text-gray-300 font-extrabold">3</div>
+                                <div class="text-left">
+                                    <p class="text-xs font-extrabold text-white">Anúncio</p>
+                                    <p class="text-[10px] text-gray-500">Criativo, copy, tracking</p>
+                                </div>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="flex-1 min-h-0 overflow-hidden grid grid-cols-1 lg:grid-cols-3">
+                    <!-- Left: Form -->
+                    <div class="lg:col-span-2 min-h-0 overflow-y-auto custom-scrollbar p-6 space-y-6">
+                        <!-- Step: Campaign -->
+                        <section id="builder-step-panel-0" class="builder-panel space-y-6">
+                            <div class="bg-gray-950 border border-gray-800 rounded-2xl p-5">
+                                <div class="flex items-center justify-between mb-4">
+                                    <h4 class="text-sm font-extrabold text-white">Configurações da Campanha</h4>
+                                    <span class="text-[10px] text-gray-500">estilo Meta</span>
+                                </div>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div class="md:col-span-2">
+                                        <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Nome da campanha</label>
+                                        <input id="builder-campaign-name" type="text" class="w-full bg-gray-900 border border-gray-800 rounded-xl px-4 py-3 text-sm text-white" placeholder="Ex: Vendas - Pixel - 01">
+                                    </div>
+                                    <div>
+                                        <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Objetivo</label>
+                                        <select id="builder-campaign-objective" class="w-full bg-gray-900 border border-gray-800 rounded-xl px-4 py-3 text-sm text-white">
+                                            <option value="OUTCOME_SALES">Vendas</option>
+                                            <option value="OUTCOME_LEADS">Leads</option>
+                                            <option value="OUTCOME_TRAFFIC">Tráfego</option>
+                                            <option value="OUTCOME_AWARENESS">Reconhecimento</option>
+                                            <option value="OUTCOME_ENGAGEMENT">Engajamento</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Status inicial</label>
+                                        <select id="builder-campaign-status" class="w-full bg-gray-900 border border-gray-800 rounded-xl px-4 py-3 text-sm text-white">
+                                            <option value="PAUSED">Pausado</option>
+                                            <option value="ACTIVE">Ativo</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="bg-gray-950 border border-gray-800 rounded-2xl p-5">
+                                <h4 class="text-sm font-extrabold text-white mb-4">Orçamento (estrutura)</h4>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Tipo</label>
+                                        <select id="builder-campaign-budget-type" class="w-full bg-gray-900 border border-gray-800 rounded-xl px-4 py-3 text-sm text-white" onchange="adsManager.builderOnBudgetTypeChange()">
+                                            <option value="daily_budget">Orçamento diário</option>
+                                            <option value="lifetime_budget">Orçamento total</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Valor</label>
+                                        <div class="relative">
+                                            <span class="absolute left-4 top-1/2 -translate-y-1/2 text-xs text-gray-500">R$</span>
+                                            <input id="builder-campaign-budget" type="number" step="0.01" class="w-full bg-gray-900 border border-gray-800 rounded-xl pl-10 pr-4 py-3 text-sm text-white" placeholder="0.00">
+                                        </div>
+                                        <p class="mt-2 text-[10px] text-gray-500">Na etapa funcional, este valor será convertido para centavos como a Meta exige.</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="bg-gray-950 border border-gray-800 rounded-2xl p-5">
+                                <h4 class="text-sm font-extrabold text-white mb-4">A/B Test e Otimizações</h4>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <label class="flex items-center justify-between gap-3 bg-gray-900 border border-gray-800 rounded-xl px-4 py-3">
+                                        <div>
+                                            <p class="text-sm font-bold text-white">A/B Test</p>
+                                            <p class="text-[10px] text-gray-500">Configuração visual (etapa funcional depois)</p>
+                                        </div>
+                                        <input id="builder-campaign-abtest" type="checkbox" class="chk">
+                                    </label>
+                                    <label class="flex items-center justify-between gap-3 bg-gray-900 border border-gray-800 rounded-xl px-4 py-3">
+                                        <div>
+                                            <p class="text-sm font-bold text-white">Campanha Advantage+</p>
+                                            <p class="text-[10px] text-gray-500">Estrutura simplificada (beta)</p>
+                                        </div>
+                                        <input id="builder-campaign-advplus" type="checkbox" class="chk">
+                                    </label>
+                                </div>
+                            </div>
+                        </section>
+
+                        <!-- Step: AdSet -->
+                        <section id="builder-step-panel-1" class="builder-panel hidden space-y-6">
+                            <div class="bg-gray-950 border border-gray-800 rounded-2xl p-5">
+                                <h4 class="text-sm font-extrabold text-white mb-4">Configurações do Conjunto</h4>
+                                <p class="text-xs text-gray-500">Selecione a campanha de origem e configure as opções principais do conjunto.</p>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                                    <div class="md:col-span-2">
+                                        <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Campanha (ID)</label>
+                                        <select id="builder-adset-campaign-id" class="w-full bg-gray-900 border border-gray-800 rounded-xl px-4 py-3 text-sm text-white">
+                                            <option value="">Selecione uma campanha...</option>
+                                        </select>
+                                        <p class="mt-2 text-[10px] text-gray-500">Obrigatório para criar um conjunto. A lista será carregada da conta selecionada.</p>
+                                    </div>
+
+                                    <div class="md:col-span-2">
+                                        <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Nome do conjunto</label>
+                                        <input id="builder-adset-name" type="text" class="w-full bg-gray-900 border border-gray-800 rounded-xl px-4 py-3 text-sm text-white" placeholder="Ex: Público amplo - 25-54">
+                                    </div>
+                                    <div>
+                                        <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Otimização</label>
+                                        <select id="builder-adset-optimization" class="w-full bg-gray-900 border border-gray-800 rounded-xl px-4 py-3 text-sm text-white">
+                                            <option value="OFFSITE_CONVERSIONS">Conversões</option>
+                                            <option value="LINK_CLICKS">Cliques no link</option>
+                                            <option value="LANDING_PAGE_VIEWS">Visualizações de página de destino</option>
+                                            <option value="LEAD_GENERATION">Leads</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Evento de cobrança</label>
+                                        <select id="builder-adset-billing" class="w-full bg-gray-900 border border-gray-800 rounded-xl px-4 py-3 text-sm text-white">
+                                            <option value="IMPRESSIONS">Impressões</option>
+                                            <option value="LINK_CLICKS">Cliques no link</option>
+                                        </select>
+                                    </div>
+                                    <div class="md:col-span-2">
+                                        <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Status do conjunto</label>
+                                        <select id="builder-adset-status" class="w-full bg-gray-900 border border-gray-800 rounded-xl px-4 py-3 text-sm text-white">
+                                            <option value="PAUSED">Pausado</option>
+                                            <option value="ACTIVE">Ativo</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div id="builder-adset-conversions" class="bg-gray-950 border border-gray-800 rounded-2xl p-5">
+                                <div class="flex items-center justify-between mb-2">
+                                    <h4 class="text-sm font-extrabold text-white">Conversões (Pixel)</h4>
+                                    <span class="text-[10px] text-gray-500">necessário para Conversões</span>
+                                </div>
+                                <p class="text-xs text-gray-500">Preencha apenas se sua otimização for <span class="text-gray-300 font-semibold">Conversões</span>. Caso contrário, deixe em branco.</p>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                                    <div>
+                                        <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Pixel ID</label>
+                                        <input id="builder-adset-pixel-id" type="text" class="w-full bg-gray-900 border border-gray-800 rounded-xl px-4 py-3 text-sm text-white" placeholder="Ex: 1234567890">
+                                    </div>
+                                    <div>
+                                        <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Evento</label>
+                                        <select id="builder-adset-event" class="w-full bg-gray-900 border border-gray-800 rounded-xl px-4 py-3 text-sm text-white">
+                                            <option value="PURCHASE">PURCHASE</option>
+                                            <option value="LEAD">LEAD</option>
+                                            <option value="INITIATED_CHECKOUT">INITIATED_CHECKOUT</option>
+                                            <option value="ADD_TO_CART">ADD_TO_CART</option>
+                                            <option value="VIEW_CONTENT">VIEW_CONTENT</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="bg-gray-950 border border-gray-800 rounded-2xl p-5">
+                                <h4 class="text-sm font-extrabold text-white mb-4">Programação</h4>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Início</label>
+                                        <input id="builder-adset-start" type="datetime-local" class="w-full bg-gray-900 border border-gray-800 rounded-xl px-4 py-3 text-sm text-white">
+                                    </div>
+                                    <div>
+                                        <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Fim (opcional)</label>
+                                        <input id="builder-adset-end" type="datetime-local" class="w-full bg-gray-900 border border-gray-800 rounded-xl px-4 py-3 text-sm text-white">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="bg-gray-950 border border-gray-800 rounded-2xl p-5">
+                                <h4 class="text-sm font-extrabold text-white mb-4">Orçamento do conjunto</h4>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Tipo</label>
+                                        <select id="builder-adset-budget-type" class="w-full bg-gray-900 border border-gray-800 rounded-xl px-4 py-3 text-sm text-white">
+                                            <option value="daily_budget">Diário</option>
+                                            <option value="lifetime_budget">Total</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Valor</label>
+                                        <div class="relative">
+                                            <span class="absolute left-4 top-1/2 -translate-y-1/2 text-xs text-gray-500">R$</span>
+                                            <input id="builder-adset-budget" type="number" step="0.01" class="w-full bg-gray-900 border border-gray-800 rounded-xl pl-10 pr-4 py-3 text-sm text-white" placeholder="0.00">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="bg-gray-950 border border-gray-800 rounded-2xl p-5">
+                                <h4 class="text-sm font-extrabold text-white mb-4">Público e Posicionamentos</h4>
+                                <p class="text-xs text-gray-500">UI placeholder (iremos detalhar como no Meta na próxima etapa).</p>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                                    <div>
+                                        <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Idade mínima</label>
+                                        <input id="builder-adset-age-min" type="number" class="w-full bg-gray-900 border border-gray-800 rounded-xl px-4 py-3 text-sm text-white" value="18">
+                                    </div>
+                                    <div>
+                                        <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Idade máxima</label>
+                                        <input id="builder-adset-age-max" type="number" class="w-full bg-gray-900 border border-gray-800 rounded-xl px-4 py-3 text-sm text-white" value="65">
+                                    </div>
+                                    <div class="md:col-span-2">
+                                        <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Localizações</label>
+                                        <input id="builder-adset-geo" type="text" class="w-full bg-gray-900 border border-gray-800 rounded-xl px-4 py-3 text-sm text-white" placeholder="Ex: Brasil, São Paulo">
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+
+                        <!-- Step: Ad -->
+                        <section id="builder-step-panel-2" class="builder-panel hidden space-y-6">
+                            <div class="bg-gray-950 border border-gray-800 rounded-2xl p-5">
+                                <h4 class="text-sm font-extrabold text-white mb-4">Configurações do Anúncio</h4>
+                                <p class="text-xs text-gray-500">(UI pronta — lógica/API depois)</p>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                                    <div class="md:col-span-2">
+                                        <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Nome do anúncio</label>
+                                        <input id="builder-ad-name" type="text" class="w-full bg-gray-900 border border-gray-800 rounded-xl px-4 py-3 text-sm text-white" placeholder="Ex: Criativo 01 - UGC">
+                                    </div>
+
+                                    <div>
+                                        <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Status</label>
+                                        <select id="builder-ad-status" class="w-full bg-gray-900 border border-gray-800 rounded-xl px-4 py-3 text-sm text-white">
+                                            <option value="PAUSED">Pausado</option>
+                                            <option value="ACTIVE">Ativo</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">(Criação)</label>
+                                        <div class="w-full bg-gray-900 border border-gray-800 rounded-xl px-4 py-3 text-sm text-gray-500">Nesta etapa criaremos primeiro o Criativo (Etapa 8.1). A criação do Anúncio (Etapa 8.2) virá em seguida.</div>
+                                    </div>
+
+                                    <div class="md:col-span-2">
+                                        <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Conjunto (AdSet)</label>
+                                        <select id="builder-ad-adset-id" class="w-full bg-gray-900 border border-gray-800 rounded-xl px-4 py-3 text-sm text-white">
+                                            <option value="">Selecione um conjunto...</option>
+                                        </select>
+                                        <p class="mt-2 text-[10px] text-gray-500">Obrigatório para criar o anúncio. A lista será carregada da conta selecionada.</p>
+                                    </div>
+
+                                    <div class="md:col-span-2">
+                                        <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Página (ID)</label>
+                                        <input id="builder-ad-page-id" type="text" class="w-full bg-gray-900 border border-gray-800 rounded-xl px-4 py-3 text-sm text-white" placeholder="Ex: 1234567890">
+                                    </div>
+                                    <div class="md:col-span-2">
+                                        <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Texto principal</label>
+                                        <textarea id="builder-ad-primary-text" rows="4" class="w-full bg-gray-900 border border-gray-800 rounded-xl px-4 py-3 text-sm text-white resize-none" placeholder="Escreva o texto do anúncio..."></textarea>
+                                    </div>
+                                    <div>
+                                        <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Headline</label>
+                                        <input id="builder-ad-headline" type="text" class="w-full bg-gray-900 border border-gray-800 rounded-xl px-4 py-3 text-sm text-white" placeholder="Ex: Compre agora">
+                                    </div>
+                                    <div>
+                                        <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">CTA</label>
+                                        <select id="builder-ad-cta" class="w-full bg-gray-900 border border-gray-800 rounded-xl px-4 py-3 text-sm text-white">
+                                            <option value="SHOP_NOW">Comprar agora</option>
+                                            <option value="LEARN_MORE">Saiba mais</option>
+                                            <option value="SIGN_UP">Cadastre-se</option>
+                                            <option value="CONTACT_US">Fale conosco</option>
+                                        </select>
+                                    </div>
+                                    <div class="md:col-span-2">
+                                        <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">URL do site</label>
+                                        <input id="builder-ad-url" type="url" class="w-full bg-gray-900 border border-gray-800 rounded-xl px-4 py-3 text-sm text-white" placeholder="https://...">
+                                    </div>
+
+                                    <div class="md:col-span-2">
+                                        <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Imagem (URL)</label>
+                                        <input id="builder-ad-image-url" type="url" class="w-full bg-gray-900 border border-gray-800 rounded-xl px-4 py-3 text-sm text-white" placeholder="https://.../imagem.jpg">
+                                        <p class="mt-2 text-[10px] text-gray-500">Para criar o criativo automaticamente, informe uma URL pública da imagem. (Upload de arquivo: em breve.)</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="bg-gray-950 border border-gray-800 rounded-2xl p-5">
+                                <h4 class="text-sm font-extrabold text-white mb-4">Tracking</h4>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">UTM Source</label>
+                                        <input id="builder-utm-source" type="text" class="w-full bg-gray-900 border border-gray-800 rounded-xl px-4 py-3 text-sm text-white" placeholder="facebook">
+                                    </div>
+                                    <div>
+                                        <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">UTM Campaign</label>
+                                        <input id="builder-utm-campaign" type="text" class="w-full bg-gray-900 border border-gray-800 rounded-xl px-4 py-3 text-sm text-white" placeholder="campanha">
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+                    </div>
+
+                    <!-- Right: Summary / Preview -->
+                    <aside id="builder-preview" class="hidden lg:block border-l border-gray-800 bg-gray-950/30 min-h-0 overflow-y-auto custom-scrollbar p-6">
+                        <div class="sticky top-0">
+                            <h4 class="text-sm font-extrabold text-white mb-2">Resumo</h4>
+                            <p class="text-xs text-gray-500 mb-4">Pré-visualização da estrutura (UI)</p>
+                            <div class="space-y-4">
+                                <div class="bg-gray-900 border border-gray-800 rounded-2xl p-4">
+                                    <p class="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Campanha</p>
+                                    <p id="builder-preview-campaign" class="text-sm font-bold text-white mt-1">—</p>
+                                    <p id="builder-preview-campaign-meta" class="text-[10px] text-gray-500 mt-2">—</p>
+                                </div>
+                                <div class="bg-gray-900 border border-gray-800 rounded-2xl p-4">
+                                    <p class="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Conjunto</p>
+                                    <p id="builder-preview-adset" class="text-sm font-bold text-white mt-1">—</p>
+                                    <p id="builder-preview-adset-meta" class="text-[10px] text-gray-500 mt-2">—</p>
+                                </div>
+                                <div class="bg-gray-900 border border-gray-800 rounded-2xl p-4">
+                                    <p class="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Anúncio</p>
+                                    <p id="builder-preview-ad" class="text-sm font-bold text-white mt-1">—</p>
+                                    <p id="builder-preview-ad-meta" class="text-[10px] text-gray-500 mt-2">—</p>
+                                </div>
+                            </div>
+                        </div>
+                    </aside>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="p-6 border-t border-gray-800 bg-gray-900/50 flex items-center justify-between gap-3 shrink-0">
+                <div class="flex items-center gap-2">
+                    <button type="button" onclick="adsManager.builderBack()" class="columns-btn"><i class="fas fa-arrow-left"></i> Voltar</button>
+                    <button type="button" onclick="adsManager.builderNext()" class="columns-btn columns-btn-primary">Próximo <i class="fas fa-arrow-right"></i></button>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button type="button" onclick="adsManager.builderSaveDraft()" class="columns-btn"><i class="far fa-save"></i> Salvar rascunho</button>
+                    <button type="button" onclick="adsManager.builderPrimaryAction()" class="columns-btn columns-btn-primary"><i class="fas fa-cloud-upload-alt"></i> Publicar (em breve)</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Scripts (Updated Versions) -->
-    <script src="js/facebook-api.js?v=20260129"></script>
-    <script src="js/profiles.js?v=20260129"></script>
+    <script src="js/facebook-api.js?v=20260129.34"></script>
+    <script src="js/profiles.js?v=20260129.33"></script>
     <script src="js/ads-manager.js?v=20260129.2"></script>
+    <script src="js/ads-manager/builder.js?v=20260129.9"></script>
     <script src="js/rules-manager.js?v=20260129"></script>
     <script src="js/pages-manager.js?v=20260129.60"></script>
     <script src="js/app.js?v=20260129"></script>
@@ -938,6 +1331,35 @@
             <div class="p-6 border-t border-gray-800 flex gap-3 bg-gray-900/50">
                 <button onclick="profilesManager.closeTokenModal()" class="flex-1 px-4 py-3 bg-gray-800 hover:bg-gray-700 text-white rounded-xl text-sm font-bold transition-colors">Cancelar</button>
                 <button id="btn-save-token" onclick="profilesManager.saveTokenFromModal()" class="flex-1 px-4 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-sm font-bold transition-colors">Salvar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Configure Proxy -->
+    <div id="modal-proxy" class="fixed inset-0 z-50 hidden bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onclick="if(event.target===this) profilesManager.closeProxyModal()">
+        <div class="bg-gray-900 border border-gray-800 rounded-3xl shadow-2xl w-full max-w-xl animate-fade-in overflow-hidden">
+            <div class="p-6 border-b border-gray-800 flex justify-between items-center bg-gray-900/50">
+                <div>
+                    <h3 class="text-lg font-bold text-white">Configurar Proxy</h3>
+                    <p class="text-xs text-gray-500" id="proxy-subtitle">...</p>
+                </div>
+                <button onclick="profilesManager.closeProxyModal()" class="w-8 h-8 rounded-full bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white flex items-center justify-center transition-colors"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="p-6 space-y-4">
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">URL do Proxy</label>
+                    <input id="proxy-input" type="text" class="w-full bg-gray-950 border border-gray-800 rounded-2xl px-4 py-3 text-sm text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none" placeholder="Ex: https://seu-proxy.com/https://graph.facebook.com/v19.0">
+                    <p class="mt-2 text-[10px] text-gray-500">Dica: seu proxy deve encaminhar a URL completa. Ex.: proxy + "/" + url-da-meta.</p>
+                </div>
+                <div class="bg-gray-950 border border-gray-800 rounded-2xl p-4">
+                    <p class="text-xs text-gray-400 mb-2"><i class="fas fa-shield-halved mr-2 text-blue-400"></i>Como funciona</p>
+                    <p class="text-[10px] text-gray-500">Quando configurado, este perfil fará requests para a Meta via proxy (útil para geolocalização/roteamento). Isso afeta somente este perfil.</p>
+                </div>
+            </div>
+            <div class="p-6 border-t border-gray-800 flex gap-3 bg-gray-900/50">
+                <button onclick="profilesManager.clearProxyFromModal()" class="px-4 py-3 bg-gray-800 hover:bg-gray-700 text-white rounded-xl text-sm font-bold transition-colors">Remover Proxy</button>
+                <button onclick="profilesManager.closeProxyModal()" class="flex-1 px-4 py-3 bg-gray-800 hover:bg-gray-700 text-white rounded-xl text-sm font-bold transition-colors">Cancelar</button>
+                <button id="btn-save-proxy" onclick="profilesManager.saveProxyFromModal()" class="flex-1 px-4 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-sm font-bold transition-colors">Salvar</button>
             </div>
         </div>
     </div>
